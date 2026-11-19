@@ -20,8 +20,9 @@ cat > "$BUNDLE/Contents/Info.plist" <<'PLIST'
   <key>CFBundleDisplayName</key><string>Narrator</string>
   <key>CFBundleIconFile</key><string>AppIcon</string>
   <key>CFBundlePackageType</key><string>APPL</string>
-  <key>CFBundleShortVersionString</key><string>1.1</string>
-  <key>CFBundleVersion</key><string>2</string>
+  <key>CFBundleShortVersionString</key><string>1.2</string>
+  <key>CFBundleVersion</key><string>3</string>
+  <key>NSHumanReadableCopyright</key><string>Narrator, your AI reading agent. Read more, without reading. GPL-3.0.</string>
   <key>LSMinimumSystemVersion</key><string>14.0</string>
   <key>LSArchitecturePriority</key><array><string>arm64</string></array>
   <key>LSUIElement</key><true/>

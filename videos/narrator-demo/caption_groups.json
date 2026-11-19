@@ -1,0 +1,1276 @@
+{
+  "total_duration_s": 49.57,
+  "width": 1920,
+  "height": 1080,
+  "groups": [
+    {
+      "id": "caption-group-0",
+      "frame": 1,
+      "start": 0.45,
+      "end": 0.994,
+      "text": "Too much",
+      "words": [
+        {
+          "id": "caption-word-0-0",
+          "text": "Too",
+          "start": 0.45,
+          "end": 0.692
+        },
+        {
+          "id": "caption-word-0-1",
+          "text": "much",
+          "start": 0.692,
+          "end": 0.994
+        }
+      ]
+    },
+    {
+      "id": "caption-group-1",
+      "frame": 1,
+      "start": 0.994,
+      "end": 1.538,
+      "text": "to read,",
+      "words": [
+        {
+          "id": "caption-word-1-0",
+          "text": "to",
+          "start": 0.994,
+          "end": 1.175
+        },
+        {
+          "id": "caption-word-1-1",
+          "text": "read,",
+          "start": 1.175,
+          "end": 1.538
+        }
+      ]
+    },
+    {
+      "id": "caption-group-2",
+      "frame": 1,
+      "start": 1.538,
+      "end": 2.082,
+      "text": "and zero",
+      "words": [
+        {
+          "id": "caption-word-2-0",
+          "text": "and",
+          "start": 1.538,
+          "end": 1.78
+        },
+        {
+          "id": "caption-word-2-1",
+          "text": "zero",
+          "start": 1.78,
+          "end": 2.082
+        }
+      ]
+    },
+    {
+      "id": "caption-group-3",
+      "frame": 1,
+      "start": 2.082,
+      "end": 2.687,
+      "text": "energy to",
+      "words": [
+        {
+          "id": "caption-word-3-0",
+          "text": "energy",
+          "start": 2.082,
+          "end": 2.505
+        },
+        {
+          "id": "caption-word-3-1",
+          "text": "to",
+          "start": 2.505,
+          "end": 2.687
+        }
+      ]
+    },
+    {
+      "id": "caption-group-4",
+      "frame": 1,
+      "start": 2.687,
+      "end": 3.231,
+      "text": "read it?",
+      "words": [
+        {
+          "id": "caption-word-4-0",
+          "text": "read",
+          "start": 2.687,
+          "end": 2.989
+        },
+        {
+          "id": "caption-word-4-1",
+          "text": "it?",
+          "start": 2.989,
+          "end": 3.231
+        }
+      ]
+    },
+    {
+      "id": "caption-group-5",
+      "frame": 1,
+      "start": 3.231,
+      "end": 3.654,
+      "text": "Don't.",
+      "words": [
+        {
+          "id": "caption-word-5-0",
+          "text": "Don't.",
+          "start": 3.231,
+          "end": 3.654
+        }
+      ]
+    },
+    {
+      "id": "caption-group-6",
+      "frame": 1,
+      "start": 3.654,
+      "end": 4.56,
+      "text": "Just listen.",
+      "words": [
+        {
+          "id": "caption-word-6-0",
+          "text": "Just",
+          "start": 3.654,
+          "end": 3.956
+        },
+        {
+          "id": "caption-word-6-1",
+          "text": "listen.",
+          "start": 3.956,
+          "end": 4.44
+        }
+      ]
+    },
+    {
+      "id": "caption-group-7",
+      "frame": 2,
+      "start": 5.54,
+      "end": 6.525,
+      "text": "Meet Narrator,",
+      "words": [
+        {
+          "id": "caption-word-7-0",
+          "text": "Meet",
+          "start": 5.54,
+          "end": 5.828
+        },
+        {
+          "id": "caption-word-7-1",
+          "text": "Narrator,",
+          "start": 5.828,
+          "end": 6.405
+        }
+      ]
+    },
+    {
+      "id": "caption-group-8",
+      "frame": 2,
+      "start": 6.55,
+      "end": 7.584,
+      "text": "your AI reading",
+      "words": [
+        {
+          "id": "caption-word-8-0",
+          "text": "your",
+          "start": 6.55,
+          "end": 6.873
+        },
+        {
+          "id": "caption-word-8-1",
+          "text": "AI",
+          "start": 6.873,
+          "end": 7.067
+        },
+        {
+          "id": "caption-word-8-2",
+          "text": "reading",
+          "start": 7.067,
+          "end": 7.584
+        }
+      ]
+    },
+    {
+      "id": "caption-group-9",
+      "frame": 2,
+      "start": 7.584,
+      "end": 8.157,
+      "text": "agent.",
+      "words": [
+        {
+          "id": "caption-word-9-0",
+          "text": "agent.",
+          "start": 7.584,
+          "end": 8.037
+        }
+      ]
+    },
+    {
+      "id": "caption-group-10",
+      "frame": 2,
+      "start": 8.566,
+      "end": 8.988,
+      "text": "It reads",
+      "words": [
+        {
+          "id": "caption-word-10-0",
+          "text": "It",
+          "start": 8.566,
+          "end": 8.707
+        },
+        {
+          "id": "caption-word-10-1",
+          "text": "reads",
+          "start": 8.707,
+          "end": 8.988
+        }
+      ]
+    },
+    {
+      "id": "caption-group-11",
+      "frame": 2,
+      "start": 8.988,
+      "end": 9.551,
+      "text": "anything on",
+      "words": [
+        {
+          "id": "caption-word-11-0",
+          "text": "anything",
+          "start": 8.988,
+          "end": 9.411
+        },
+        {
+          "id": "caption-word-11-1",
+          "text": "on",
+          "start": 9.411,
+          "end": 9.551
+        }
+      ]
+    },
+    {
+      "id": "caption-group-12",
+      "frame": 2,
+      "start": 9.551,
+      "end": 9.974,
+      "text": "your Mac",
+      "words": [
+        {
+          "id": "caption-word-12-0",
+          "text": "your",
+          "start": 9.551,
+          "end": 9.786
+        },
+        {
+          "id": "caption-word-12-1",
+          "text": "Mac",
+          "start": 9.786,
+          "end": 9.974
+        }
+      ]
+    },
+    {
+      "id": "caption-group-13",
+      "frame": 2,
+      "start": 9.974,
+      "end": 10.563,
+      "text": "out loud,",
+      "words": [
+        {
+          "id": "caption-word-13-0",
+          "text": "out",
+          "start": 9.974,
+          "end": 10.161
+        },
+        {
+          "id": "caption-word-13-1",
+          "text": "loud,",
+          "start": 10.161,
+          "end": 10.443
+        }
+      ]
+    },
+    {
+      "id": "caption-group-14",
+      "frame": 2,
+      "start": 10.741,
+      "end": 10.984,
+      "text": "in a",
+      "words": [
+        {
+          "id": "caption-word-14-0",
+          "text": "in",
+          "start": 10.741,
+          "end": 10.887
+        },
+        {
+          "id": "caption-word-14-1",
+          "text": "a",
+          "start": 10.887,
+          "end": 10.984
+        }
+      ]
+    },
+    {
+      "id": "caption-group-15",
+      "frame": 2,
+      "start": 10.984,
+      "end": 11.519,
+      "text": "voice that",
+      "words": [
+        {
+          "id": "caption-word-15-0",
+          "text": "voice",
+          "start": 10.984,
+          "end": 11.276
+        },
+        {
+          "id": "caption-word-15-1",
+          "text": "that",
+          "start": 11.276,
+          "end": 11.519
+        }
+      ]
+    },
+    {
+      "id": "caption-group-16",
+      "frame": 2,
+      "start": 11.519,
+      "end": 12.32,
+      "text": "sounds human.",
+      "words": [
+        {
+          "id": "caption-word-16-0",
+          "text": "sounds",
+          "start": 11.519,
+          "end": 11.86
+        },
+        {
+          "id": "caption-word-16-1",
+          "text": "human.",
+          "start": 11.86,
+          "end": 12.2
+        }
+      ]
+    },
+    {
+      "id": "caption-group-17",
+      "frame": 3,
+      "start": 13.25,
+      "end": 13.615,
+      "text": "And it",
+      "words": [
+        {
+          "id": "caption-word-17-0",
+          "text": "And",
+          "start": 13.25,
+          "end": 13.459
+        },
+        {
+          "id": "caption-word-17-1",
+          "text": "it",
+          "start": 13.459,
+          "end": 13.615
+        }
+      ]
+    },
+    {
+      "id": "caption-group-18",
+      "frame": 3,
+      "start": 13.615,
+      "end": 14.36,
+      "text": "has a face.",
+      "words": [
+        {
+          "id": "caption-word-18-0",
+          "text": "has",
+          "start": 13.615,
+          "end": 13.823
+        },
+        {
+          "id": "caption-word-18-1",
+          "text": "a",
+          "start": 13.823,
+          "end": 13.928
+        },
+        {
+          "id": "caption-word-18-2",
+          "text": "face.",
+          "start": 13.928,
+          "end": 14.24
+        }
+      ]
+    },
+    {
+      "id": "caption-group-19",
+      "frame": 3,
+      "start": 14.709,
+      "end": 15.586,
+      "text": "Meet Lumen,",
+      "words": [
+        {
+          "id": "caption-word-19-0",
+          "text": "Meet",
+          "start": 14.709,
+          "end": 15.025
+        },
+        {
+          "id": "caption-word-19-1",
+          "text": "Lumen,",
+          "start": 15.025,
+          "end": 15.466
+        }
+      ]
+    },
+    {
+      "id": "caption-group-20",
+      "frame": 3,
+      "start": 15.685,
+      "end": 16.126,
+      "text": "the little",
+      "words": [
+        {
+          "id": "caption-word-20-0",
+          "text": "the",
+          "start": 15.685,
+          "end": 15.845
+        },
+        {
+          "id": "caption-word-20-1",
+          "text": "little",
+          "start": 15.845,
+          "end": 16.126
+        }
+      ]
+    },
+    {
+      "id": "caption-group-21",
+      "frame": 3,
+      "start": 16.126,
+      "end": 16.487,
+      "text": "moth who",
+      "words": [
+        {
+          "id": "caption-word-21-0",
+          "text": "moth",
+          "start": 16.126,
+          "end": 16.326
+        },
+        {
+          "id": "caption-word-21-1",
+          "text": "who",
+          "start": 16.326,
+          "end": 16.487
+        }
+      ]
+    },
+    {
+      "id": "caption-group-22",
+      "frame": 3,
+      "start": 16.487,
+      "end": 16.928,
+      "text": "reads with",
+      "words": [
+        {
+          "id": "caption-word-22-0",
+          "text": "reads",
+          "start": 16.487,
+          "end": 16.727
+        },
+        {
+          "id": "caption-word-22-1",
+          "text": "with",
+          "start": 16.727,
+          "end": 16.928
+        }
+      ]
+    },
+    {
+      "id": "caption-group-23",
+      "frame": 3,
+      "start": 16.928,
+      "end": 17.289,
+      "text": "you from",
+      "words": [
+        {
+          "id": "caption-word-23-0",
+          "text": "you",
+          "start": 16.928,
+          "end": 17.088
+        },
+        {
+          "id": "caption-word-23-1",
+          "text": "from",
+          "start": 17.088,
+          "end": 17.289
+        }
+      ]
+    },
+    {
+      "id": "caption-group-24",
+      "frame": 3,
+      "start": 17.289,
+      "end": 17.85,
+      "text": "your Dock.",
+      "words": [
+        {
+          "id": "caption-word-24-0",
+          "text": "your",
+          "start": 17.289,
+          "end": 17.489
+        },
+        {
+          "id": "caption-word-24-1",
+          "text": "Dock.",
+          "start": 17.489,
+          "end": 17.73
+        }
+      ]
+    },
+    {
+      "id": "caption-group-25",
+      "frame": 4,
+      "start": 18.78,
+      "end": 19.603,
+      "text": "Press Option,",
+      "words": [
+        {
+          "id": "caption-word-25-0",
+          "text": "Press",
+          "start": 18.78,
+          "end": 19.133
+        },
+        {
+          "id": "caption-word-25-1",
+          "text": "Option,",
+          "start": 19.133,
+          "end": 19.603
+        }
+      ]
+    },
+    {
+      "id": "caption-group-26",
+      "frame": 4,
+      "start": 19.603,
+      "end": 20.014,
+      "text": "Shift,",
+      "words": [
+        {
+          "id": "caption-word-26-0",
+          "text": "Shift,",
+          "start": 19.603,
+          "end": 20.014
+        }
+      ]
+    },
+    {
+      "id": "caption-group-27",
+      "frame": 4,
+      "start": 20.014,
+      "end": 20.19,
+      "text": "4,",
+      "words": [
+        {
+          "id": "caption-word-27-0",
+          "text": "4,",
+          "start": 20.014,
+          "end": 20.19
+        }
+      ]
+    },
+    {
+      "id": "caption-group-28",
+      "frame": 4,
+      "start": 20.19,
+      "end": 20.719,
+      "text": "and drag",
+      "words": [
+        {
+          "id": "caption-word-28-0",
+          "text": "and",
+          "start": 20.19,
+          "end": 20.425
+        },
+        {
+          "id": "caption-word-28-1",
+          "text": "drag",
+          "start": 20.425,
+          "end": 20.719
+        }
+      ]
+    },
+    {
+      "id": "caption-group-29",
+      "frame": 4,
+      "start": 20.719,
+      "end": 21.894,
+      "text": "over anything you'd",
+      "words": [
+        {
+          "id": "caption-word-29-0",
+          "text": "over",
+          "start": 20.719,
+          "end": 21.013
+        },
+        {
+          "id": "caption-word-29-1",
+          "text": "anything",
+          "start": 21.013,
+          "end": 21.541
+        },
+        {
+          "id": "caption-word-29-2",
+          "text": "you'd",
+          "start": 21.541,
+          "end": 21.894
+        }
+      ]
+    },
+    {
+      "id": "caption-group-30",
+      "frame": 4,
+      "start": 21.894,
+      "end": 23.013,
+      "text": "rather not read.",
+      "words": [
+        {
+          "id": "caption-word-30-0",
+          "text": "rather",
+          "start": 21.894,
+          "end": 22.305
+        },
+        {
+          "id": "caption-word-30-1",
+          "text": "not",
+          "start": 22.305,
+          "end": 22.54
+        },
+        {
+          "id": "caption-word-30-2",
+          "text": "read.",
+          "start": 22.54,
+          "end": 22.893
+        }
+      ]
+    },
+    {
+      "id": "caption-group-31",
+      "frame": 5,
+      "start": 24.05,
+      "end": 24.467,
+      "text": "Tell it",
+      "words": [
+        {
+          "id": "caption-word-31-0",
+          "text": "Tell",
+          "start": 24.05,
+          "end": 24.311
+        },
+        {
+          "id": "caption-word-31-1",
+          "text": "it",
+          "start": 24.311,
+          "end": 24.467
+        }
+      ]
+    },
+    {
+      "id": "caption-group-32",
+      "frame": 5,
+      "start": 24.467,
+      "end": 24.884,
+      "text": "what to",
+      "words": [
+        {
+          "id": "caption-word-32-0",
+          "text": "what",
+          "start": 24.467,
+          "end": 24.728
+        },
+        {
+          "id": "caption-word-32-1",
+          "text": "to",
+          "start": 24.728,
+          "end": 24.884
+        }
+      ]
+    },
+    {
+      "id": "caption-group-33",
+      "frame": 5,
+      "start": 24.884,
+      "end": 25.405,
+      "text": "focus on.",
+      "words": [
+        {
+          "id": "caption-word-33-0",
+          "text": "focus",
+          "start": 24.884,
+          "end": 25.197
+        },
+        {
+          "id": "caption-word-33-1",
+          "text": "on.",
+          "start": 25.197,
+          "end": 25.405
+        }
+      ]
+    },
+    {
+      "id": "caption-group-34",
+      "frame": 5,
+      "start": 25.405,
+      "end": 25.77,
+      "text": "Pick a",
+      "words": [
+        {
+          "id": "caption-word-34-0",
+          "text": "Pick",
+          "start": 25.405,
+          "end": 25.666
+        },
+        {
+          "id": "caption-word-34-1",
+          "text": "a",
+          "start": 25.666,
+          "end": 25.77
+        }
+      ]
+    },
+    {
+      "id": "caption-group-35",
+      "frame": 5,
+      "start": 25.77,
+      "end": 26.083,
+      "text": "mood,",
+      "words": [
+        {
+          "id": "caption-word-35-0",
+          "text": "mood,",
+          "start": 25.77,
+          "end": 26.083
+        }
+      ]
+    },
+    {
+      "id": "caption-group-36",
+      "frame": 5,
+      "start": 26.083,
+      "end": 26.396,
+      "text": "and a",
+      "words": [
+        {
+          "id": "caption-word-36-0",
+          "text": "and",
+          "start": 26.083,
+          "end": 26.292
+        },
+        {
+          "id": "caption-word-36-1",
+          "text": "a",
+          "start": 26.292,
+          "end": 26.396
+        }
+      ]
+    },
+    {
+      "id": "caption-group-37",
+      "frame": 5,
+      "start": 26.396,
+      "end": 27.35,
+      "text": "voice you like.",
+      "words": [
+        {
+          "id": "caption-word-37-0",
+          "text": "voice",
+          "start": 26.396,
+          "end": 26.709
+        },
+        {
+          "id": "caption-word-37-1",
+          "text": "you",
+          "start": 26.709,
+          "end": 26.917
+        },
+        {
+          "id": "caption-word-37-2",
+          "text": "like.",
+          "start": 26.917,
+          "end": 27.23
+        }
+      ]
+    },
+    {
+      "id": "caption-group-38",
+      "frame": 6,
+      "start": 28.28,
+      "end": 28.816,
+      "text": "Then sit",
+      "words": [
+        {
+          "id": "caption-word-38-0",
+          "text": "Then",
+          "start": 28.28,
+          "end": 28.578
+        },
+        {
+          "id": "caption-word-38-1",
+          "text": "sit",
+          "start": 28.578,
+          "end": 28.816
+        }
+      ]
+    },
+    {
+      "id": "caption-group-39",
+      "frame": 6,
+      "start": 28.816,
+      "end": 29.173,
+      "text": "back.",
+      "words": [
+        {
+          "id": "caption-word-39-0",
+          "text": "back.",
+          "start": 28.816,
+          "end": 29.173
+        }
+      ]
+    },
+    {
+      "id": "caption-group-40",
+      "frame": 6,
+      "start": 29.173,
+      "end": 29.71,
+      "text": "It reads",
+      "words": [
+        {
+          "id": "caption-word-40-0",
+          "text": "It",
+          "start": 29.173,
+          "end": 29.352
+        },
+        {
+          "id": "caption-word-40-1",
+          "text": "reads",
+          "start": 29.352,
+          "end": 29.71
+        }
+      ]
+    },
+    {
+      "id": "caption-group-41",
+      "frame": 6,
+      "start": 29.71,
+      "end": 30.186,
+      "text": "line by",
+      "words": [
+        {
+          "id": "caption-word-41-0",
+          "text": "line",
+          "start": 29.71,
+          "end": 30.007
+        },
+        {
+          "id": "caption-word-41-1",
+          "text": "by",
+          "start": 30.007,
+          "end": 30.186
+        }
+      ]
+    },
+    {
+      "id": "caption-group-42",
+      "frame": 6,
+      "start": 30.186,
+      "end": 30.543,
+      "text": "line,",
+      "words": [
+        {
+          "id": "caption-word-42-0",
+          "text": "line,",
+          "start": 30.186,
+          "end": 30.543
+        }
+      ]
+    },
+    {
+      "id": "caption-group-43",
+      "frame": 6,
+      "start": 30.543,
+      "end": 31.675,
+      "text": "highlighting as it",
+      "words": [
+        {
+          "id": "caption-word-43-0",
+          "text": "highlighting",
+          "start": 30.543,
+          "end": 31.318
+        },
+        {
+          "id": "caption-word-43-1",
+          "text": "as",
+          "start": 31.318,
+          "end": 31.497
+        },
+        {
+          "id": "caption-word-43-2",
+          "text": "it",
+          "start": 31.497,
+          "end": 31.675
+        }
+      ]
+    },
+    {
+      "id": "caption-group-44",
+      "frame": 6,
+      "start": 31.675,
+      "end": 32.033,
+      "text": "goes,",
+      "words": [
+        {
+          "id": "caption-word-44-0",
+          "text": "goes,",
+          "start": 31.675,
+          "end": 32.033
+        }
+      ]
+    },
+    {
+      "id": "caption-group-45",
+      "frame": 6,
+      "start": 32.033,
+      "end": 33.105,
+      "text": "while Lumen reads",
+      "words": [
+        {
+          "id": "caption-word-45-0",
+          "text": "while",
+          "start": 32.033,
+          "end": 32.39
+        },
+        {
+          "id": "caption-word-45-1",
+          "text": "Lumen",
+          "start": 32.39,
+          "end": 32.747
+        },
+        {
+          "id": "caption-word-45-2",
+          "text": "reads",
+          "start": 32.747,
+          "end": 33.105
+        }
+      ]
+    },
+    {
+      "id": "caption-group-46",
+      "frame": 6,
+      "start": 33.105,
+      "end": 33.642,
+      "text": "along.",
+      "words": [
+        {
+          "id": "caption-word-46-0",
+          "text": "along.",
+          "start": 33.105,
+          "end": 33.522
+        }
+      ]
+    },
+    {
+      "id": "caption-group-47",
+      "frame": 7,
+      "start": 34.68,
+      "end": 36.019,
+      "text": "Chatting with Claude?",
+      "words": [
+        {
+          "id": "caption-word-47-0",
+          "text": "Chatting",
+          "start": 34.68,
+          "end": 35.228
+        },
+        {
+          "id": "caption-word-47-1",
+          "text": "with",
+          "start": 35.228,
+          "end": 35.532
+        },
+        {
+          "id": "caption-word-47-2",
+          "text": "Claude?",
+          "start": 35.532,
+          "end": 36.019
+        }
+      ]
+    },
+    {
+      "id": "caption-group-48",
+      "frame": 7,
+      "start": 36.019,
+      "end": 36.567,
+      "text": "It reads",
+      "words": [
+        {
+          "id": "caption-word-48-0",
+          "text": "It",
+          "start": 36.019,
+          "end": 36.202
+        },
+        {
+          "id": "caption-word-48-1",
+          "text": "reads",
+          "start": 36.202,
+          "end": 36.567
+        }
+      ]
+    },
+    {
+      "id": "caption-group-49",
+      "frame": 7,
+      "start": 36.567,
+      "end": 37.176,
+      "text": "every new",
+      "words": [
+        {
+          "id": "caption-word-49-0",
+          "text": "every",
+          "start": 36.567,
+          "end": 36.932
+        },
+        {
+          "id": "caption-word-49-1",
+          "text": "new",
+          "start": 36.932,
+          "end": 37.176
+        }
+      ]
+    },
+    {
+      "id": "caption-group-50",
+      "frame": 7,
+      "start": 37.176,
+      "end": 37.784,
+      "text": "reply out",
+      "words": [
+        {
+          "id": "caption-word-50-0",
+          "text": "reply",
+          "start": 37.176,
+          "end": 37.541
+        },
+        {
+          "id": "caption-word-50-1",
+          "text": "out",
+          "start": 37.541,
+          "end": 37.784
+        }
+      ]
+    },
+    {
+      "id": "caption-group-51",
+      "frame": 7,
+      "start": 37.784,
+      "end": 38.15,
+      "text": "loud.",
+      "words": [
+        {
+          "id": "caption-word-51-0",
+          "text": "loud.",
+          "start": 37.784,
+          "end": 38.15
+        }
+      ]
+    },
+    {
+      "id": "caption-group-52",
+      "frame": 7,
+      "start": 38.15,
+      "end": 39.367,
+      "text": "Stuck on something?",
+      "words": [
+        {
+          "id": "caption-word-52-0",
+          "text": "Stuck",
+          "start": 38.15,
+          "end": 38.515
+        },
+        {
+          "id": "caption-word-52-1",
+          "text": "on",
+          "start": 38.515,
+          "end": 38.697
+        },
+        {
+          "id": "caption-word-52-2",
+          "text": "something?",
+          "start": 38.697,
+          "end": 39.367
+        }
+      ]
+    },
+    {
+      "id": "caption-group-53",
+      "frame": 7,
+      "start": 39.367,
+      "end": 40.219,
+      "text": "Press Option,",
+      "words": [
+        {
+          "id": "caption-word-53-0",
+          "text": "Press",
+          "start": 39.367,
+          "end": 39.732
+        },
+        {
+          "id": "caption-word-53-1",
+          "text": "Option,",
+          "start": 39.732,
+          "end": 40.219
+        }
+      ]
+    },
+    {
+      "id": "caption-group-54",
+      "frame": 7,
+      "start": 40.219,
+      "end": 40.645,
+      "text": "Shift,",
+      "words": [
+        {
+          "id": "caption-word-54-0",
+          "text": "Shift,",
+          "start": 40.219,
+          "end": 40.645
+        }
+      ]
+    },
+    {
+      "id": "caption-group-55",
+      "frame": 7,
+      "start": 40.645,
+      "end": 40.828,
+      "text": "A,",
+      "words": [
+        {
+          "id": "caption-word-55-0",
+          "text": "A,",
+          "start": 40.645,
+          "end": 40.828
+        }
+      ]
+    },
+    {
+      "id": "caption-group-56",
+      "frame": 7,
+      "start": 40.828,
+      "end": 41.8,
+      "text": "and just ask.",
+      "words": [
+        {
+          "id": "caption-word-56-0",
+          "text": "and",
+          "start": 40.828,
+          "end": 41.071
+        },
+        {
+          "id": "caption-word-56-1",
+          "text": "just",
+          "start": 41.071,
+          "end": 41.376
+        },
+        {
+          "id": "caption-word-56-2",
+          "text": "ask.",
+          "start": 41.376,
+          "end": 41.68
+        }
+      ]
+    },
+    {
+      "id": "caption-group-57",
+      "frame": 8,
+      "start": 42.73,
+      "end": 43.33,
+      "text": "Narrator.",
+      "words": [
+        {
+          "id": "caption-word-57-0",
+          "text": "Narrator.",
+          "start": 42.73,
+          "end": 43.33
+        }
+      ]
+    },
+    {
+      "id": "caption-group-58",
+      "frame": 8,
+      "start": 43.33,
+      "end": 43.99,
+      "text": "Read more,",
+      "words": [
+        {
+          "id": "caption-word-58-0",
+          "text": "Read",
+          "start": 43.33,
+          "end": 43.63
+        },
+        {
+          "id": "caption-word-58-1",
+          "text": "more,",
+          "start": 43.63,
+          "end": 43.99
+        }
+      ]
+    },
+    {
+      "id": "caption-group-59",
+      "frame": 8,
+      "start": 43.99,
+      "end": 45.01,
+      "text": "without reading.",
+      "words": [
+        {
+          "id": "caption-word-59-0",
+          "text": "without",
+          "start": 43.99,
+          "end": 44.47
+        },
+        {
+          "id": "caption-word-59-1",
+          "text": "reading.",
+          "start": 44.47,
+          "end": 45.01
+        }
+      ]
+    },
+    {
+      "id": "caption-group-60",
+      "frame": 8,
+      "start": 45.01,
+      "end": 46.09,
+      "text": "Free on GitHub.",
+      "words": [
+        {
+          "id": "caption-word-60-0",
+          "text": "Free",
+          "start": 45.01,
+          "end": 45.31
+        },
+        {
+          "id": "caption-word-60-1",
+          "text": "on",
+          "start": 45.31,
+          "end": 45.49
+        },
+        {
+          "id": "caption-word-60-2",
+          "text": "GitHub.",
+          "start": 45.49,
+          "end": 45.97
+        }
+      ]
+    }
+  ]
+}

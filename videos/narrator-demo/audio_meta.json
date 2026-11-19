@@ -1,0 +1,765 @@
+{
+  "bgm": {
+    "path": "assets/music/bed.wav",
+    "source": "host"
+  },
+  "bgm_pending": false,
+  "voices": [
+    {
+      "frame": 1,
+      "path": "assets/voice/01.wav",
+      "duration_s": 5.24,
+      "words": [
+        {
+          "text": "Too",
+          "start": 0.45,
+          "end": 0.692
+        },
+        {
+          "text": "much",
+          "start": 0.692,
+          "end": 0.994
+        },
+        {
+          "text": "to",
+          "start": 0.994,
+          "end": 1.175
+        },
+        {
+          "text": "read,",
+          "start": 1.175,
+          "end": 1.538
+        },
+        {
+          "text": "and",
+          "start": 1.538,
+          "end": 1.78
+        },
+        {
+          "text": "zero",
+          "start": 1.78,
+          "end": 2.082
+        },
+        {
+          "text": "energy",
+          "start": 2.082,
+          "end": 2.505
+        },
+        {
+          "text": "to",
+          "start": 2.505,
+          "end": 2.687
+        },
+        {
+          "text": "read",
+          "start": 2.687,
+          "end": 2.989
+        },
+        {
+          "text": "it?",
+          "start": 2.989,
+          "end": 3.231
+        },
+        {
+          "text": "Don't.",
+          "start": 3.231,
+          "end": 3.654
+        },
+        {
+          "text": "Just",
+          "start": 3.654,
+          "end": 3.956
+        },
+        {
+          "text": "listen.",
+          "start": 3.956,
+          "end": 4.44
+        }
+      ]
+    },
+    {
+      "frame": 2,
+      "path": "assets/voice/02.wav",
+      "duration_s": 7.71,
+      "words": [
+        {
+          "text": "Meet",
+          "start": 0.3,
+          "end": 0.588
+        },
+        {
+          "text": "Narrator,",
+          "start": 0.588,
+          "end": 1.165
+        },
+        {
+          "text": "your",
+          "start": 1.31,
+          "end": 1.633
+        },
+        {
+          "text": "AI",
+          "start": 1.633,
+          "end": 1.827
+        },
+        {
+          "text": "reading",
+          "start": 1.827,
+          "end": 2.344
+        },
+        {
+          "text": "agent.",
+          "start": 2.344,
+          "end": 2.797
+        },
+        {
+          "text": "It",
+          "start": 3.326,
+          "end": 3.467
+        },
+        {
+          "text": "reads",
+          "start": 3.467,
+          "end": 3.748
+        },
+        {
+          "text": "anything",
+          "start": 3.748,
+          "end": 4.171
+        },
+        {
+          "text": "on",
+          "start": 4.171,
+          "end": 4.311
+        },
+        {
+          "text": "your",
+          "start": 4.311,
+          "end": 4.546
+        },
+        {
+          "text": "Mac",
+          "start": 4.546,
+          "end": 4.734
+        },
+        {
+          "text": "out",
+          "start": 4.734,
+          "end": 4.921
+        },
+        {
+          "text": "loud,",
+          "start": 4.921,
+          "end": 5.203
+        },
+        {
+          "text": "in",
+          "start": 5.501,
+          "end": 5.647
+        },
+        {
+          "text": "a",
+          "start": 5.647,
+          "end": 5.744
+        },
+        {
+          "text": "voice",
+          "start": 5.744,
+          "end": 6.036
+        },
+        {
+          "text": "that",
+          "start": 6.036,
+          "end": 6.279
+        },
+        {
+          "text": "sounds",
+          "start": 6.279,
+          "end": 6.62
+        },
+        {
+          "text": "human.",
+          "start": 6.62,
+          "end": 6.96
+        }
+      ]
+    },
+    {
+      "frame": 3,
+      "path": "assets/voice/03.wav",
+      "duration_s": 5.53,
+      "words": [
+        {
+          "text": "And",
+          "start": 0.3,
+          "end": 0.509
+        },
+        {
+          "text": "it",
+          "start": 0.509,
+          "end": 0.665
+        },
+        {
+          "text": "has",
+          "start": 0.665,
+          "end": 0.873
+        },
+        {
+          "text": "a",
+          "start": 0.873,
+          "end": 0.978
+        },
+        {
+          "text": "face.",
+          "start": 0.978,
+          "end": 1.29
+        },
+        {
+          "text": "Meet",
+          "start": 1.759,
+          "end": 2.075
+        },
+        {
+          "text": "Lumen,",
+          "start": 2.075,
+          "end": 2.516
+        },
+        {
+          "text": "the",
+          "start": 2.735,
+          "end": 2.895
+        },
+        {
+          "text": "little",
+          "start": 2.895,
+          "end": 3.176
+        },
+        {
+          "text": "moth",
+          "start": 3.176,
+          "end": 3.376
+        },
+        {
+          "text": "who",
+          "start": 3.376,
+          "end": 3.537
+        },
+        {
+          "text": "reads",
+          "start": 3.537,
+          "end": 3.777
+        },
+        {
+          "text": "with",
+          "start": 3.777,
+          "end": 3.978
+        },
+        {
+          "text": "you",
+          "start": 3.978,
+          "end": 4.138
+        },
+        {
+          "text": "from",
+          "start": 4.138,
+          "end": 4.339
+        },
+        {
+          "text": "your",
+          "start": 4.339,
+          "end": 4.539
+        },
+        {
+          "text": "Dock.",
+          "start": 4.539,
+          "end": 4.78
+        }
+      ]
+    },
+    {
+      "frame": 4,
+      "path": "assets/voice/04.wav",
+      "duration_s": 5.27,
+      "words": [
+        {
+          "text": "Press",
+          "start": 0.3,
+          "end": 0.653
+        },
+        {
+          "text": "Option,",
+          "start": 0.653,
+          "end": 1.123
+        },
+        {
+          "text": "Shift,",
+          "start": 1.123,
+          "end": 1.534
+        },
+        {
+          "text": "4,",
+          "start": 1.534,
+          "end": 1.71
+        },
+        {
+          "text": "and",
+          "start": 1.71,
+          "end": 1.945
+        },
+        {
+          "text": "drag",
+          "start": 1.945,
+          "end": 2.239
+        },
+        {
+          "text": "over",
+          "start": 2.239,
+          "end": 2.533
+        },
+        {
+          "text": "anything",
+          "start": 2.533,
+          "end": 3.061
+        },
+        {
+          "text": "you'd",
+          "start": 3.061,
+          "end": 3.414
+        },
+        {
+          "text": "rather",
+          "start": 3.414,
+          "end": 3.825
+        },
+        {
+          "text": "not",
+          "start": 3.825,
+          "end": 4.06
+        },
+        {
+          "text": "read.",
+          "start": 4.06,
+          "end": 4.413
+        }
+      ]
+    },
+    {
+      "frame": 5,
+      "path": "assets/voice/05.wav",
+      "duration_s": 4.23,
+      "words": [
+        {
+          "text": "Tell",
+          "start": 0.3,
+          "end": 0.561
+        },
+        {
+          "text": "it",
+          "start": 0.561,
+          "end": 0.717
+        },
+        {
+          "text": "what",
+          "start": 0.717,
+          "end": 0.978
+        },
+        {
+          "text": "to",
+          "start": 0.978,
+          "end": 1.134
+        },
+        {
+          "text": "focus",
+          "start": 1.134,
+          "end": 1.447
+        },
+        {
+          "text": "on.",
+          "start": 1.447,
+          "end": 1.655
+        },
+        {
+          "text": "Pick",
+          "start": 1.655,
+          "end": 1.916
+        },
+        {
+          "text": "a",
+          "start": 1.916,
+          "end": 2.02
+        },
+        {
+          "text": "mood,",
+          "start": 2.02,
+          "end": 2.333
+        },
+        {
+          "text": "and",
+          "start": 2.333,
+          "end": 2.542
+        },
+        {
+          "text": "a",
+          "start": 2.542,
+          "end": 2.646
+        },
+        {
+          "text": "voice",
+          "start": 2.646,
+          "end": 2.959
+        },
+        {
+          "text": "you",
+          "start": 2.959,
+          "end": 3.167
+        },
+        {
+          "text": "like.",
+          "start": 3.167,
+          "end": 3.48
+        }
+      ]
+    },
+    {
+      "frame": 6,
+      "path": "assets/voice/06.wav",
+      "duration_s": 6.4,
+      "words": [
+        {
+          "text": "Then",
+          "start": 0.3,
+          "end": 0.598
+        },
+        {
+          "text": "sit",
+          "start": 0.598,
+          "end": 0.836
+        },
+        {
+          "text": "back.",
+          "start": 0.836,
+          "end": 1.193
+        },
+        {
+          "text": "It",
+          "start": 1.193,
+          "end": 1.372
+        },
+        {
+          "text": "reads",
+          "start": 1.372,
+          "end": 1.73
+        },
+        {
+          "text": "line",
+          "start": 1.73,
+          "end": 2.027
+        },
+        {
+          "text": "by",
+          "start": 2.027,
+          "end": 2.206
+        },
+        {
+          "text": "line,",
+          "start": 2.206,
+          "end": 2.563
+        },
+        {
+          "text": "highlighting",
+          "start": 2.563,
+          "end": 3.338
+        },
+        {
+          "text": "as",
+          "start": 3.338,
+          "end": 3.517
+        },
+        {
+          "text": "it",
+          "start": 3.517,
+          "end": 3.695
+        },
+        {
+          "text": "goes,",
+          "start": 3.695,
+          "end": 4.053
+        },
+        {
+          "text": "while",
+          "start": 4.053,
+          "end": 4.41
+        },
+        {
+          "text": "Lumen",
+          "start": 4.41,
+          "end": 4.767
+        },
+        {
+          "text": "reads",
+          "start": 4.767,
+          "end": 5.125
+        },
+        {
+          "text": "along.",
+          "start": 5.125,
+          "end": 5.542
+        }
+      ]
+    },
+    {
+      "frame": 7,
+      "path": "assets/voice/07.wav",
+      "duration_s": 8.05,
+      "words": [
+        {
+          "text": "Chatting",
+          "start": 0.3,
+          "end": 0.848
+        },
+        {
+          "text": "with",
+          "start": 0.848,
+          "end": 1.152
+        },
+        {
+          "text": "Claude?",
+          "start": 1.152,
+          "end": 1.639
+        },
+        {
+          "text": "It",
+          "start": 1.639,
+          "end": 1.822
+        },
+        {
+          "text": "reads",
+          "start": 1.822,
+          "end": 2.187
+        },
+        {
+          "text": "every",
+          "start": 2.187,
+          "end": 2.552
+        },
+        {
+          "text": "new",
+          "start": 2.552,
+          "end": 2.796
+        },
+        {
+          "text": "reply",
+          "start": 2.796,
+          "end": 3.161
+        },
+        {
+          "text": "out",
+          "start": 3.161,
+          "end": 3.404
+        },
+        {
+          "text": "loud.",
+          "start": 3.404,
+          "end": 3.77
+        },
+        {
+          "text": "Stuck",
+          "start": 3.77,
+          "end": 4.135
+        },
+        {
+          "text": "on",
+          "start": 4.135,
+          "end": 4.317
+        },
+        {
+          "text": "something?",
+          "start": 4.317,
+          "end": 4.987
+        },
+        {
+          "text": "Press",
+          "start": 4.987,
+          "end": 5.352
+        },
+        {
+          "text": "Option,",
+          "start": 5.352,
+          "end": 5.839
+        },
+        {
+          "text": "Shift,",
+          "start": 5.839,
+          "end": 6.265
+        },
+        {
+          "text": "A,",
+          "start": 6.265,
+          "end": 6.448
+        },
+        {
+          "text": "and",
+          "start": 6.448,
+          "end": 6.691
+        },
+        {
+          "text": "just",
+          "start": 6.691,
+          "end": 6.996
+        },
+        {
+          "text": "ask.",
+          "start": 6.996,
+          "end": 7.3
+        }
+      ]
+    },
+    {
+      "frame": 8,
+      "path": "assets/voice/08.wav",
+      "duration_s": 7.14,
+      "words": [
+        {
+          "text": "Narrator.",
+          "start": 0.3,
+          "end": 0.9
+        },
+        {
+          "text": "Read",
+          "start": 0.9,
+          "end": 1.2
+        },
+        {
+          "text": "more,",
+          "start": 1.2,
+          "end": 1.56
+        },
+        {
+          "text": "without",
+          "start": 1.56,
+          "end": 2.04
+        },
+        {
+          "text": "reading.",
+          "start": 2.04,
+          "end": 2.58
+        },
+        {
+          "text": "Free",
+          "start": 2.58,
+          "end": 2.88
+        },
+        {
+          "text": "on",
+          "start": 2.88,
+          "end": 3.06
+        },
+        {
+          "text": "GitHub.",
+          "start": 3.06,
+          "end": 3.54
+        }
+      ]
+    }
+  ],
+  "sfx": [
+    {
+      "frame": 1,
+      "file": "assets/sfx/whoosh-short.wav",
+      "offset_s": 4.85,
+      "duration_s": 0.575,
+      "source": "host"
+    },
+    {
+      "frame": 3,
+      "file": "assets/sfx/whoosh-short.wav",
+      "offset_s": 0.1,
+      "duration_s": 0.575,
+      "source": "host"
+    },
+    {
+      "frame": 3,
+      "file": "assets/sfx/sparkle.wav",
+      "offset_s": 4.5,
+      "duration_s": 1.802,
+      "source": "host"
+    },
+    {
+      "frame": 4,
+      "file": "assets/sfx/key-press.wav",
+      "offset_s": 0.62,
+      "duration_s": 0.4,
+      "source": "host"
+    },
+    {
+      "frame": 4,
+      "file": "assets/sfx/key-press.wav",
+      "offset_s": 1.17,
+      "duration_s": 0.4,
+      "source": "host"
+    },
+    {
+      "frame": 4,
+      "file": "assets/sfx/key-press.wav",
+      "offset_s": 1.82,
+      "duration_s": 0.4,
+      "source": "host"
+    },
+    {
+      "frame": 5,
+      "file": "assets/sfx/click-soft.wav",
+      "offset_s": 2.02,
+      "duration_s": 0.366,
+      "source": "host"
+    },
+    {
+      "frame": 5,
+      "file": "assets/sfx/click-soft.wav",
+      "offset_s": 2.96,
+      "duration_s": 0.366,
+      "source": "host"
+    },
+    {
+      "frame": 7,
+      "file": "assets/sfx/key-press.wav",
+      "offset_s": 5.35,
+      "duration_s": 0.4,
+      "source": "host"
+    },
+    {
+      "frame": 7,
+      "file": "assets/sfx/key-press.wav",
+      "offset_s": 5.84,
+      "duration_s": 0.4,
+      "source": "host"
+    },
+    {
+      "frame": 7,
+      "file": "assets/sfx/key-press.wav",
+      "offset_s": 6.26,
+      "duration_s": 0.4,
+      "source": "host"
+    },
+    {
+      "frame": 7,
+      "file": "assets/sfx/typing-short.wav",
+      "offset_s": 6.3,
+      "duration_s": 0.75,
+      "source": "host"
+    },
+    {
+      "frame": 7,
+      "file": "assets/sfx/click-soft.wav",
+      "offset_s": 7.0,
+      "duration_s": 0.366,
+      "source": "host"
+    },
+    {
+      "frame": 8,
+      "file": "assets/sfx/chime.wav",
+      "offset_s": 3.5,
+      "duration_s": 2.5,
+      "source": "host"
+    }
+  ]
+}

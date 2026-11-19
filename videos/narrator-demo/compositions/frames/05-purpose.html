@@ -1,0 +1,280 @@
+<template id="05-purpose-template">
+  <div data-hf-id="hf-fmt4" id="root" data-composition-id="05-purpose" data-start="0" data-duration="4.73" data-width="1920" data-height="1080">
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+@font-face { font-family: "Instrument Serif"; font-style: normal; font-weight: 400; src: url("assets/fonts/InstrumentSerif.ttf") format("truetype"); font-display: block; }
+@font-face { font-family: "Instrument Serif"; font-style: italic; font-weight: 400; src: url("assets/fonts/InstrumentSerif-Italic.woff2") format("woff2"); font-display: block; }
+@font-face { font-family: "Archivo"; font-style: normal; font-weight: 100 900; src: url("assets/fonts/Archivo.ttf") format("truetype"); font-display: block; }
+      #root {
+        position: relative;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        font-family: "Archivo", sans-serif;
+        color: #121214;
+      }
+      [id="05-purpose-ground"] {
+        position: absolute;
+        inset: 0;
+        background: #F7F3EA;
+      }
+      [id="05-purpose-stage"] {
+        position: absolute;
+        inset: 0;
+      }
+      [id="05-purpose-bloom"] {
+        position: absolute;
+        left: 210px;
+        top: -67px;
+        width: 1500px;
+        height: 1100px;
+        border-radius: 50%;
+        background: radial-gradient(closest-side, rgba(255, 199, 41, 0.85) 0%, rgba(255, 227, 148, 0.6) 42%, rgba(255, 217, 109, 0.2) 70%, rgba(247, 243, 234, 0) 100%);
+        opacity: 0;
+      }
+      [id="05-purpose-ember"] {
+        position: absolute;
+        left: -360px;
+        top: 520px;
+        width: 900px;
+        height: 700px;
+        border-radius: 50%;
+        background: radial-gradient(closest-side, rgba(185, 168, 214, 0.2) 0%, rgba(185, 168, 214, 0) 100%);
+      }
+      [id="05-purpose-world"] {
+        position: absolute;
+        inset: 0;
+        transform-origin: 960px 483px;
+      }
+      [id="05-purpose-label"] {
+        position: absolute;
+        left: 365px;
+        top: 186px;
+        font-size: 26px;
+        line-height: 1;
+        font-weight: 600;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        white-space: nowrap;
+      }
+      [id="05-purpose-label"] span {
+        display: inline-block;
+        margin-right: 0.32em;
+      }
+      [id="05-purpose-rule"] {
+        position: absolute;
+        left: 365px;
+        top: 232px;
+        width: 1190px;
+        height: 1px;
+        background: #121214;
+        transform-origin: left center;
+      }
+      [id="05-purpose-panel"] {
+        position: absolute;
+        left: 365px;
+        top: 250px;
+        width: 1190px;
+        height: 467px;
+      }
+      [id="05-purpose-panel"] img {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 1190px;
+        height: 467px;
+        display: block;
+      }
+      [id="05-purpose-img-mood"],
+      [id="05-purpose-img-voice"] {
+        opacity: 0;
+      }
+      [class~="05-purpose-ripple"] {
+        position: absolute;
+        width: 56px;
+        height: 56px;
+        margin: -28px 0 0 -28px;
+        border-radius: 50%;
+        border: 2px solid #FFC729;
+        opacity: 0;
+        pointer-events: none;
+      }
+      [id="05-purpose-tag"] {
+        position: absolute;
+        right: 365px;
+        top: 177px;
+        height: 46px;
+        padding: 0 18px 0 16px;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        background: #FFC729;
+        color: #121214;
+        font-size: 21px;
+        font-weight: 600;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        white-space: nowrap;
+        transform-origin: right bottom;
+        opacity: 0;
+      }
+      [class~="05-purpose-bars"] {
+        display: flex;
+        align-items: flex-end;
+        gap: 4px;
+        height: 22px;
+      }
+      [class~="05-purpose-bar"] {
+        width: 4px;
+        background: #121214;
+        transform-origin: center bottom;
+      }
+      [id="05-purpose-bug"] {
+        position: absolute;
+        left: 64px;
+        top: 52px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        opacity: 0.85;
+        z-index: 5;
+      }
+      [id="05-purpose-bug"] img {
+        width: 44px;
+        height: 44px;
+        display: block;
+      }
+      [class~="05-purpose-bug-name"] {
+        font-family: "Instrument Serif", serif;
+        font-size: 30px;
+        line-height: 1;
+        color: #121214;
+      }
+      [class~="05-purpose-bug-sub"] {
+        margin-top: 4px;
+        font-family: "Archivo", sans-serif;
+        font-size: 11px;
+        line-height: 1;
+        font-weight: 600;
+        letter-spacing: 0.18em;
+        color: rgba(18, 18, 20, 0.7);
+      }
+      [id="05-purpose-cursor"] {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 34px;
+        height: 48px;
+        margin: -3px 0 0 -3px;
+        transform-origin: 3px 3px;
+        opacity: 0;
+        pointer-events: none;
+        z-index: 10;
+      }
+    </style>
+
+    <div data-hf-id="hf-8j3d" id="05-purpose-ground" class="clip" data-start="0" data-duration="4.73" data-track-index="0"></div>
+
+    <div data-hf-id="hf-iw0z" id="05-purpose-stage" class="clip" data-start="0" data-duration="4.73" data-track-index="1">
+      <div data-hf-id="hf-9y5j" id="05-purpose-bloom"></div>
+      <div data-hf-id="hf-vgir" id="05-purpose-ember"></div>
+
+      <div data-hf-id="hf-bug1" id="05-purpose-bug">
+        <img data-hf-id="hf-bug2" src="assets/app-icon.png" alt="" />
+        <div data-hf-id="hf-bug3">
+          <div data-hf-id="hf-bug4" class="05-purpose-bug-name">Narrator</div>
+          <div data-hf-id="hf-bug5" class="05-purpose-bug-sub">AI READING AGENT</div>
+        </div>
+      </div>
+
+      <div data-hf-id="hf-vq76" id="05-purpose-world">
+        <div data-hf-id="hf-p8cw" id="05-purpose-label"><span data-hf-id="hf-vc84">Tell</span><span data-hf-id="hf-43uj">it</span><span data-hf-id="hf-osda">what</span><span data-hf-id="hf-p210">to</span><span data-hf-id="hf-p211">focus</span><span data-hf-id="hf-p212">on</span></div>
+        <div data-hf-id="hf-3q7o" id="05-purpose-rule"></div>
+
+        <div data-hf-id="hf-8mu6" id="05-purpose-tag">
+          <div data-hf-id="hf-8plr" class="05-purpose-bars">
+            <div data-hf-id="hf-zcp8" class="05-purpose-bar" style="height: 14px"></div>
+            <div data-hf-id="hf-4g8z" class="05-purpose-bar" style="height: 22px"></div>
+            <div data-hf-id="hf-e40f" class="05-purpose-bar" style="height: 17px"></div>
+          </div>
+          <span data-hf-id="hf-bp8v">Plays a sample</span>
+        </div>
+
+        <div data-hf-id="hf-w6qg" id="05-purpose-panel">
+          <img data-hf-id="hf-epwz" id="05-purpose-img-start" src="assets/purpose-start.png" alt="" />
+          <img data-hf-id="hf-ginf" id="05-purpose-img-mood" src="assets/purpose-mood.png" alt="" />
+          <img data-hf-id="hf-blrb" id="05-purpose-img-voice" src="assets/purpose-voice.png" alt="" />
+        </div>
+
+        <div data-hf-id="hf-ju8m" class="05-purpose-ripple 05-purpose-ripple-a" style="left: 845px; top: 510px"></div>
+        <div data-hf-id="hf-r4qi" class="05-purpose-ripple 05-purpose-ripple-a" style="left: 845px; top: 510px"></div>
+        <div data-hf-id="hf-iwj3" class="05-purpose-ripple 05-purpose-ripple-b" style="left: 1406px; top: 589px"></div>
+        <div data-hf-id="hf-dvtb" class="05-purpose-ripple 05-purpose-ripple-b" style="left: 1406px; top: 589px"></div>
+
+        <svg data-hf-id="hf-8d8x" id="05-purpose-cursor" viewBox="0 0 34 48" xmlns="http://www.w3.org/2000/svg">
+          <path data-hf-id="hf-5qj0" d="M3 3 L3 38 L12 29.5 L18.5 44 L24.5 41.4 L18.2 27.2 L30 27.2 Z" fill="#121214" stroke="#FFFFFF" stroke-width="2.6" stroke-linejoin="round" />
+        </svg>
+      </div>
+    </div>
+
+    <script>
+      (function () {
+        const el = (id) => document.getElementById("05-purpose-" + id);
+        const bloom = el("bloom");
+        const label = el("label");
+        const rule = el("rule");
+        const panel = el("panel");
+        const imgMood = el("img-mood");
+        const imgVoice = el("img-voice");
+        const cursor = el("cursor");
+        const tag = el("tag");
+        const bars = tag.querySelectorAll('[class~="05-purpose-bar"]');
+        const ripA = document.querySelectorAll('[class~="05-purpose-ripple-a"]');
+        const ripB = document.querySelectorAll('[class~="05-purpose-ripple-b"]');
+
+        // Chip centres in frame px (panel at 365,250, scale 1190/1080)
+        const WARM = { x: 845, y: 510 };
+        const MAN_UK = { x: 1406, y: 589 };
+
+        gsap.set([...ripA, ...ripB], { scale: 0 });
+        gsap.set(bars, { scaleY: 0.15 });
+        gsap.set(cursor, { x: 1150, y: 770 });
+
+        const tl = gsap.timeline({ paused: true });
+
+        // Scene 1: panel slides up over a sun bloom, label sets on 0.30
+        tl.fromTo(bloom, { opacity: 0, scale: 0.85 }, { opacity: 1, scale: 1, duration: 1.4, ease: "power2.out" }, 0);
+        tl.fromTo(panel, { y: 90 }, { y: 0, duration: 0.95, ease: "power3.out" }, 0.05);
+        tl.fromTo(panel, { opacity: 0 }, { opacity: 1, duration: 0.45, ease: "power2.out" }, 0.05);
+        tl.fromTo(rule, { scaleX: 0 }, { scaleX: 1, duration: 0.8, ease: "power3.out" }, 0.25);
+        tl.fromTo(label.children, { x: -16, opacity: 0 }, { x: 0, opacity: 1, duration: 0.45, ease: "power3.out", stagger: 0.06 }, 0.3);
+
+        // Scene 2: on "mood" (2.02) the cursor clicks Warm; panel cuts to the mood state
+        tl.fromTo(cursor, { opacity: 0 }, { opacity: 1, duration: 0.25, ease: "power1.out" }, 1.15);
+        tl.to(cursor, { x: WARM.x, y: WARM.y, duration: 0.6, ease: "power2.inOut" }, 1.34);
+        tl.to(cursor, { scale: 0.85, duration: 0.08, ease: "power2.in" }, 1.96);
+        tl.to(cursor, { scale: 1, duration: 0.08, ease: "power2.out" }, 2.04);
+        tl.to(panel, { scale: 0.994, duration: 0.08, ease: "power2.in" }, 1.96);
+        tl.to(panel, { scale: 1, duration: 0.08, ease: "power2.out" }, 2.04);
+        tl.set(imgMood, { opacity: 1 }, 2.02);
+        tl.set(ripA, { opacity: 1 }, 2.02);
+        tl.to(ripA, { scale: 3.4, opacity: 0, duration: 0.65, ease: "power2.out", stagger: 0.08, immediateRender: false }, 2.02);
+
+        // Scene 3: on "voice you like" the cursor clicks Man (UK) at 2.96; panel cuts to the voice state, sample tag pops at 3.05
+        tl.to(cursor, { x: MAN_UK.x, y: MAN_UK.y, duration: 0.6, ease: "power2.inOut" }, 2.28);
+        tl.to(cursor, { scale: 0.85, duration: 0.08, ease: "power2.in" }, 2.9);
+        tl.to(cursor, { scale: 1, duration: 0.08, ease: "power2.out" }, 2.98);
+        tl.to(panel, { scale: 0.994, duration: 0.08, ease: "power2.in" }, 2.9);
+        tl.to(panel, { scale: 1, duration: 0.08, ease: "power2.out" }, 2.98);
+        tl.set(imgVoice, { opacity: 1 }, 2.96);
+        tl.set(ripB, { opacity: 1 }, 2.96);
+        tl.to(ripB, { scale: 3.4, opacity: 0, duration: 0.65, ease: "power2.out", stagger: 0.08, immediateRender: false }, 2.96);
+        tl.fromTo(tag, { scale: 0.82, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.45, ease: "back.out(1.7)" }, 3.05);
+        tl.to(bars, { scaleY: 1, duration: 0.4, ease: "back.out(2.2)", stagger: 0.08 }, 3.2);
+
+        window.__timelines = window.__timelines || {};
+        window.__timelines["05-purpose"] = tl;
+      })();
+    </script>
+  </div>
+</template>

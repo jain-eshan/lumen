@@ -1,0 +1,377 @@
+<template id="04-select-template">
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+  <style>
+@font-face { font-family: "Instrument Serif"; font-style: normal; font-weight: 400; src: url("assets/fonts/InstrumentSerif.ttf") format("truetype"); font-display: block; }
+@font-face { font-family: "Instrument Serif"; font-style: italic; font-weight: 400; src: url("assets/fonts/InstrumentSerif-Italic.woff2") format("woff2"); font-display: block; }
+@font-face { font-family: "Archivo"; font-style: normal; font-weight: 100 900; src: url("assets/fonts/Archivo.ttf") format("truetype"); font-display: block; }
+
+    #root {
+      position: absolute;
+      inset: 0;
+      width: 1920px;
+      height: 1080px;
+      overflow: hidden;
+      container-type: size;
+      color: #121214;
+    }
+    .\30 4-select-ground {
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(circle at 93% 8%, rgba(185, 168, 214, 0.2) 0%, rgba(185, 168, 214, 0) 34%),
+        radial-gradient(ellipse 60% 72% at 34% 42%, rgba(255, 199, 41, 0.82) 0%, rgba(255, 227, 148, 0.62) 28%, rgba(255, 217, 109, 0.2) 52%, rgba(247, 243, 234, 0) 74%),
+        #F7F3EA;
+    }
+    .\30 4-select-world {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 1920px;
+      height: 1080px;
+      transform-origin: 650px 435px;
+    }
+
+    /* the page card */
+    .\30 4-select-card {
+      position: absolute;
+      left: 120px;
+      top: 230px;
+      width: 1060px;
+      height: 410px;
+      background: #FFFFFF;
+      border: 1px solid rgba(18, 18, 20, 0.2);
+      border-radius: 14px;
+    }
+    .\30 4-select-text {
+      position: absolute;
+      left: 75px;
+      top: 69px;
+      width: 908px;
+      height: 272px;
+      font-family: "Archivo", sans-serif;
+      font-weight: 400;
+      font-size: 32px;
+      line-height: 48px;
+      color: #121214;
+    }
+    .\30 4-select-text p {
+      margin: 0 0 32px 0;
+    }
+
+    /* keycaps */
+    .\30 4-select-key {
+      position: absolute;
+      top: 230px;
+      height: 104px;
+    }
+    .\30 4-select-burst {
+      position: absolute;
+      inset: -10px;
+      border-radius: 30px;
+      background: radial-gradient(ellipse at 50% 50%, rgba(255, 199, 41, 1) 0%, rgba(255, 217, 109, 0.6) 45%, rgba(255, 217, 109, 0) 75%);
+      filter: blur(18px);
+      opacity: 0;
+    }
+    .\30 4-select-base {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 8px;
+      bottom: 0;
+      border-radius: 14px;
+      background: rgba(18, 18, 20, 0.12);
+      border: 1px solid rgba(18, 18, 20, 0.35);
+    }
+    .\30 4-select-face {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 0;
+      height: 96px;
+      border-radius: 14px;
+      background: #FFFFFF;
+      border: 1px solid #121214;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: "JetBrains Mono", monospace;
+      font-weight: 500;
+      font-size: 30px;
+      letter-spacing: 0.04em;
+      color: #121214;
+      transform-origin: 50% 50%;
+    }
+    .\30 4-select-face.is-num {
+      font-size: 42px;
+    }
+    .\30 4-select-plus {
+      position: absolute;
+      top: 252px;
+      width: 40px;
+      height: 56px;
+      line-height: 56px;
+      text-align: center;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 30px;
+      color: rgba(18, 18, 20, 0.5);
+    }
+
+    /* selection rectangle: fill + four 2px edges, all transform-driven */
+    .\30 4-select-sel {
+      position: absolute;
+      left: 180px;
+      top: 285px;
+      width: 940px;
+      height: 300px;
+      opacity: 0;
+    }
+    .\30 4-select-fill {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 940px;
+      height: 300px;
+      background: rgba(255, 199, 41, 0.12);
+      transform-origin: 0 0;
+    }
+    .\30 4-select-edge {
+      position: absolute;
+      left: 0;
+      top: 0;
+      background: #FFC729;
+      transform-origin: 0 0;
+    }
+    .\30 4-select-edge.is-h {
+      width: 940px;
+      height: 2px;
+    }
+    .\30 4-select-edge.is-v {
+      width: 2px;
+      height: 300px;
+    }
+    .\30 4-select-handle {
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      background: #FFC729;
+      border: 1px solid #121214;
+      transform-origin: 50% 50%;
+    }
+
+    /* press ripple, centred on the press point (180, 285) */
+    .\30 4-select-ripple {
+      position: absolute;
+      left: 130px;
+      top: 235px;
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      border: 2px solid #FFC729;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    /* tag pinned above the selection's top-right corner (1120, 285) */
+    .\30 4-select-tag {
+      position: absolute;
+      right: 794px;
+      bottom: 803px;
+      height: 44px;
+      padding: 0 16px;
+      display: flex;
+      align-items: center;
+      background: #FFC729;
+      border: 1px solid #121214;
+      font-family: "JetBrains Mono", monospace;
+      font-weight: 500;
+      font-size: 22px;
+      letter-spacing: 0.04em;
+      color: #121214;
+      white-space: nowrap;
+      transform-origin: 100% 100%;
+      opacity: 0;
+    }
+
+    /* brand bug, static from t=0 */
+    .\30 4-select-bug {
+      position: absolute;
+      left: 64px;
+      top: 52px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      opacity: 0.85;
+    }
+    .\30 4-select-bug img {
+      width: 44px;
+      height: 44px;
+      display: block;
+    }
+    .\30 4-select-bug-name {
+      font-family: "Instrument Serif", serif;
+      font-size: 30px;
+      line-height: 1;
+      color: #121214;
+    }
+    .\30 4-select-bug-sub {
+      margin-top: 4px;
+      font-family: "Archivo", sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.18em;
+      line-height: 1;
+      color: rgba(18, 18, 20, 0.7);
+    }
+
+    /* cursor: arrow tip sits at the element origin */
+    .\30 4-select-cursor {
+      position: absolute;
+      left: -3px;
+      top: -2px;
+      width: 40px;
+      height: 54px;
+      z-index: 10;
+      pointer-events: none;
+      transform-origin: 3px 2px;
+    }
+  </style>
+
+  <div data-hf-id="hf-wq4j" id="root" data-composition-id="04-select" data-width="1920" data-height="1080" data-duration="5.77">
+    <div data-hf-id="hf-361c" class="04-select-ground clip" data-start="0" data-duration="5.77" data-track-index="0"></div>
+
+    <div data-hf-id="hf-ydkq" class="04-select-world">
+      <div data-hf-id="hf-zn7k" class="04-select-card">
+        <div data-hf-id="hf-q7wj" class="04-select-text">
+          <p data-hf-id="hf-nohq">Tides rise and fall twice a day. The Moon's gravity pulls the ocean toward it, and the Earth's spin carries every coast through that bulge of water.</p>
+          <p data-hf-id="hf-l0mz">Spring tides come when the Sun and Moon line up. Neap tides come when they pull at right angles, so the water barely moves.</p>
+        </div>
+      </div>
+
+      <div data-hf-id="hf-w02q" class="04-select-key" data-k="0" style="left: 1276px; width: 176px">
+        <div data-hf-id="hf-07yo" class="04-select-burst"></div>
+        <div data-hf-id="hf-dhel" class="04-select-base"></div>
+        <div data-hf-id="hf-jexs" class="04-select-face">Option</div>
+      </div>
+      <div data-hf-id="hf-t6q9" class="04-select-plus" data-p="1" style="left: 1452px">+</div>
+      <div data-hf-id="hf-qneg" class="04-select-key" data-k="1" style="left: 1492px; width: 164px">
+        <div data-hf-id="hf-arl4" class="04-select-burst"></div>
+        <div data-hf-id="hf-wgoh" class="04-select-base"></div>
+        <div data-hf-id="hf-5x2z" class="04-select-face">Shift</div>
+      </div>
+      <div data-hf-id="hf-gra4" class="04-select-plus" data-p="2" style="left: 1656px">+</div>
+      <div data-hf-id="hf-y2jh" class="04-select-key" data-k="2" style="left: 1696px; width: 104px">
+        <div data-hf-id="hf-9ko1" class="04-select-burst"></div>
+        <div data-hf-id="hf-xnlk" class="04-select-base"></div>
+        <div data-hf-id="hf-6e7s" class="04-select-face is-num">4</div>
+      </div>
+
+      <div data-hf-id="hf-yabc" class="04-select-ripple" data-r="0"></div>
+      <div data-hf-id="hf-z1z5" class="04-select-ripple" data-r="1"></div>
+
+      <div data-hf-id="hf-eu92" class="04-select-sel">
+        <div data-hf-id="hf-33t9" class="04-select-fill"></div>
+        <div data-hf-id="hf-9qsm" class="04-select-edge is-h" data-e="top"></div>
+        <div data-hf-id="hf-dpxw" class="04-select-edge is-h" data-e="bottom"></div>
+        <div data-hf-id="hf-7dy0" class="04-select-edge is-v" data-e="left"></div>
+        <div data-hf-id="hf-8enb" class="04-select-edge is-v" data-e="right"></div>
+        <div data-hf-id="hf-0iz1" class="04-select-handle" style="left: -6px; top: -6px"></div>
+        <div data-hf-id="hf-h31c" class="04-select-handle" style="left: 934px; top: -6px"></div>
+        <div data-hf-id="hf-k3it" class="04-select-handle" style="left: -6px; top: 294px"></div>
+        <div data-hf-id="hf-ujym" class="04-select-handle" style="left: 934px; top: 294px"></div>
+      </div>
+
+      <div data-hf-id="hf-t4g1" class="04-select-tag">anything you'd rather not read</div>
+
+      <svg data-hf-id="hf-hjo5" class="04-select-cursor" viewBox="0 0 40 54" xmlns="http://www.w3.org/2000/svg">
+        <path data-hf-id="hf-zyxc" d="M3 2 L3 42 L13 33 L20 50 L27 47 L20 30 L34 30 Z" fill="#121214" stroke="#FFFFFF" stroke-width="2.5" stroke-linejoin="round" />
+      </svg>
+    </div>
+
+    <div data-hf-id="hf-b7g2" class="04-select-bug">
+      <img data-hf-id="hf-b7i3" src="assets/app-icon.png" alt="" />
+      <div data-hf-id="hf-b7t4">
+        <div data-hf-id="hf-b7n5" class="04-select-bug-name">Narrator</div>
+        <div data-hf-id="hf-b7s6" class="04-select-bug-sub">AI READING AGENT</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      const root = document.querySelector('[data-composition-id="04-select"] .\\30 4-select-world').parentNode;
+      const one = (sel) => root.querySelector(sel);
+      const all = (sel) => Array.from(root.querySelectorAll(sel));
+      const P = ".\\30 4-select-";
+
+      const cursor = one(P + "cursor");
+      const sel = one(P + "sel");
+      const fill = one(P + "fill");
+      const eTop = one('[data-e="top"]');
+      const eBottom = one('[data-e="bottom"]');
+      const eLeft = one('[data-e="left"]');
+      const eRight = one('[data-e="right"]');
+      const handles = all(P + "handle");
+      const ripples = all(P + "ripple");
+      const tag = one(P + "tag");
+
+      const W = 940, H = 300;            // selection size
+      const X0 = 180, Y0 = 285;          // press point (top-left of paragraph one)
+      const CUR_START = { x: 1560, y: 640 };
+
+      const tl = gsap.timeline({ paused: true });
+
+      // Scene 1: keycaps drop in and press on the VO (press-release-spring)
+      const cues = [0.62, 1.17, 1.82];
+      cues.forEach((c, i) => {
+        const key = one('[data-k="' + i + '"]');
+        const face = key.querySelector(P + "face");
+        const burst = key.querySelector(P + "burst");
+
+        tl.fromTo(key, { opacity: 0, y: -28 }, { opacity: 1, y: 0, duration: 0.16, ease: "power2.out" }, c - 0.16);
+        // press: linear compression, key lights up and stays held
+        tl.fromTo(face, { y: 0, scale: 1, backgroundColor: "#FFFFFF" },
+          { y: 7, scale: 0.92, backgroundColor: "#FFC729", duration: 0.1, ease: "power1.in" }, c);
+        // release: spring back (start state == press end, adjacent positions)
+        tl.to(face, { y: 3, scale: 1, duration: 0.5, ease: "back.out(2)" }, c + 0.1);
+        // burst glow behind the key
+        tl.fromTo(burst, { scale: 0.85, opacity: 0 }, { scale: 1.5, opacity: 0.75, duration: 0.3, ease: "power2.out" }, c + 0.1);
+        tl.to(burst, { opacity: 0, duration: 0.45, ease: "power2.in" }, c + 0.42);
+      });
+      // "+" joiners arrive with the key that follows them
+      tl.fromTo(one('[data-p="1"]'), { opacity: 0 }, { opacity: 1, duration: 0.16 }, cues[1] - 0.16);
+      tl.fromTo(one('[data-p="2"]'), { opacity: 0 }, { opacity: 1, duration: 0.16 }, cues[2] - 0.16);
+
+      // Scene 2: cursor glides to the first paragraph, presses, drags
+      tl.fromTo(cursor, { x: CUR_START.x, y: CUR_START.y, opacity: 0, scale: 1 },
+        { opacity: 1, duration: 0.15, ease: "power1.out" }, 1.95);
+      tl.fromTo(cursor, { x: CUR_START.x, y: CUR_START.y },
+        { x: X0, y: Y0, duration: 0.45, ease: "power3.out", immediateRender: false }, 1.95);
+
+      // press (cursor compresses, stays slightly down while dragging)
+      tl.to(cursor, { scale: 0.84, duration: 0.08, ease: "power2.in" }, 2.44);
+      tl.to(cursor, { scale: 0.92, duration: 0.1, ease: "power2.out" }, 2.52);
+
+      // ripple from the press point
+      tl.fromTo(ripples, { scale: 0, opacity: 1 },
+        { scale: 3.2, opacity: 0, duration: 0.6, ease: "power2.out", stagger: 0.08, immediateRender: false }, 2.48);
+
+      // selection grows with the cursor on "drag"
+      const DRAG_AT = 2.58, DRAG_DUR = 0.9, DRAG_EASE = "power2.inOut";
+      tl.fromTo(sel, { opacity: 0 }, { opacity: 1, duration: 0.04 }, DRAG_AT - 0.04);
+      tl.fromTo(cursor, { x: X0, y: Y0 }, { x: X0 + W, y: Y0 + H, duration: DRAG_DUR, ease: DRAG_EASE, immediateRender: false }, DRAG_AT);
+      tl.fromTo(fill, { scaleX: 0, scaleY: 0 }, { scaleX: 1, scaleY: 1, duration: DRAG_DUR, ease: DRAG_EASE }, DRAG_AT);
+      tl.fromTo(eTop, { scaleX: 0 }, { scaleX: 1, duration: DRAG_DUR, ease: DRAG_EASE }, DRAG_AT);
+      tl.fromTo(eLeft, { scaleY: 0 }, { scaleY: 1, duration: DRAG_DUR, ease: DRAG_EASE }, DRAG_AT);
+      tl.fromTo(eBottom, { y: 0, scaleX: 0 }, { y: H - 2, scaleX: 1, duration: DRAG_DUR, ease: DRAG_EASE }, DRAG_AT);
+      tl.fromTo(eRight, { x: 0, scaleY: 0 }, { x: W - 2, scaleY: 1, duration: DRAG_DUR, ease: DRAG_EASE }, DRAG_AT);
+
+      // Scene 3: release, handles pop at the corners, tag pins on "rather not read", hold
+      tl.to(cursor, { scale: 1, duration: 0.4, ease: "back.out(2)" }, 3.5);
+      tl.fromTo(handles, { scale: 0 }, { scale: 1, duration: 0.32, ease: "back.out(2.2)", stagger: 0.04 }, 3.5);
+      tl.fromTo(tag, { opacity: 0, scale: 0.6 }, { opacity: 1, scale: 1, duration: 0.36, ease: "back.out(2)" }, 3.67);
+
+      window.__timelines = window.__timelines || {};
+      window.__timelines["04-select"] = tl;
+    })();
+  </script>
+</template>

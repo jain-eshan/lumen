@@ -6,4 +6,14 @@ models/
 samples/
 narrator.log
 .DS_Store
-videos/
+# Demo video: sources are versioned; generated audio, renders and caches are not.
+videos/*/assets/voice/
+videos/*/assets/voice-raw/
+videos/*/assets/music/*.wav
+videos/*/assets/sfx/
+videos/*/renders/
+videos/*/_cut1/
+videos/*/.hyperframes/
+videos/*/node_modules/
+videos/*/audio_request.json
+videos/*/audio_engine_meta.json

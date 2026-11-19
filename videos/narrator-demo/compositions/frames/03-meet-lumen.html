@@ -1,0 +1,379 @@
+<template>
+  <style>
+@font-face { font-family: "Instrument Serif"; font-style: normal; font-weight: 400; src: url("assets/fonts/InstrumentSerif.ttf") format("truetype"); font-display: block; }
+@font-face { font-family: "Instrument Serif"; font-style: italic; font-weight: 400; src: url("assets/fonts/InstrumentSerif-Italic.woff2") format("woff2"); font-display: block; }
+@font-face { font-family: "Archivo"; font-style: normal; font-weight: 100 900; src: url("assets/fonts/Archivo.ttf") format("truetype"); font-display: block; }
+
+    #root {
+      position: absolute;
+      inset: 0;
+      width: 1920px;
+      height: 1080px;
+      overflow: hidden;
+      container-type: size;
+      color: #121214;
+    }
+
+    /* full-bleed ground: paper + sun bloom behind the landing spot + ember counter-bloom */
+    .meet-lumen-03-ground {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      background:
+        radial-gradient(
+          ellipse 36% 54% at 65% 62%,
+          rgba(255, 199, 41, 0.62) 0%,
+          rgba(255, 227, 148, 0.4) 38%,
+          rgba(255, 217, 109, 0.14) 68%,
+          rgba(247, 243, 234, 0) 100%
+        ),
+        radial-gradient(
+          ellipse 32% 42% at 4% 6%,
+          rgba(185, 168, 214, 0.2) 0%,
+          rgba(185, 168, 214, 0) 100%
+        ),
+        #f7f3ea;
+    }
+
+    .meet-lumen-03-stage {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+    }
+
+    /* ambient glow: behind the Dock and Lumen */
+    .meet-lumen-03-glow {
+      position: absolute;
+      left: 820px;
+      top: 201px;
+      width: 860px;
+      height: 860px;
+      z-index: 1;
+      border-radius: 50%;
+      background: radial-gradient(
+        circle at 50% 50%,
+        rgba(255, 186, 20, 0.95) 0%,
+        rgba(255, 199, 41, 0.6) 26%,
+        rgba(255, 217, 109, 0.22) 50%,
+        rgba(255, 217, 109, 0) 70%
+      );
+    }
+
+    /* the Dock strip */
+    .meet-lumen-03-dock {
+      position: absolute;
+      left: 288px;
+      top: 768px;
+      width: 1344px;
+      height: 104px;
+      z-index: 2;
+      border-radius: 28px;
+      background: rgba(18, 18, 20, 0.92);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 36px;
+    }
+    .meet-lumen-03-tile {
+      width: 68px;
+      height: 68px;
+      border-radius: 16px;
+      background: rgba(247, 243, 234, 0.14);
+    }
+    .meet-lumen-03-tile.is-b { background: rgba(247, 243, 234, 0.1); }
+    .meet-lumen-03-tile.is-c { background: rgba(255, 227, 148, 0.18); }
+
+    /* Lumen: track (position + blur) > flutter (bob) > tilt (rotation) > poses */
+    .meet-lumen-03-track {
+      position: absolute;
+      left: 1111px;
+      top: 491px;
+      width: 278px;
+      height: 281px;
+      z-index: 3;
+      filter: url(#meet-lumen-03-streak);
+    }
+    .meet-lumen-03-flutter,
+    .meet-lumen-03-tilt {
+      position: absolute;
+      inset: 0;
+    }
+    .meet-lumen-03-tilt { transform-origin: 50% 90%; }
+    .meet-lumen-03-pose {
+      position: absolute;
+      inset: 0;
+      width: 278px;
+      height: 281px;
+      display: block;
+    }
+
+    /* type */
+    .meet-lumen-03-headline {
+      position: absolute;
+      left: 4cqw;
+      top: 268px;
+      z-index: 4;
+      margin: 0;
+      font-family: "Instrument Serif", serif;
+      font-weight: 400;
+      font-size: 10.4cqw;
+      line-height: 0.86;
+      letter-spacing: -0.018em;
+      white-space: nowrap;
+    }
+    .meet-lumen-03-word {
+      display: inline-block;
+    }
+    .meet-lumen-03-name {
+      font-style: italic;
+      margin-left: 0.18em;
+    }
+    .meet-lumen-03-sub {
+      position: absolute;
+      left: 4.3cqw;
+      top: 478px;
+      z-index: 4;
+      margin: 0;
+      font-family: "Archivo", sans-serif;
+      font-weight: 400;
+      font-size: 1.875cqw;
+      line-height: 1.3;
+      white-space: nowrap;
+    }
+    .meet-lumen-03-kicker {
+      position: absolute;
+      left: 4cqw;
+      top: 190px;
+      z-index: 4;
+      margin: 0;
+      font-family: "Instrument Serif", serif;
+      font-weight: 400;
+      font-size: 2.9cqw;
+      line-height: 1;
+      white-space: nowrap;
+    }
+    .meet-lumen-03-kword {
+      display: inline-block;
+      margin-right: 0.24em;
+    }
+
+    /* brand bug: identical in frames 3 to 7 */
+    .meet-lumen-03-bug {
+      position: absolute;
+      left: 64px;
+      top: 52px;
+      z-index: 5;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .meet-lumen-03-bug-icon {
+      width: 44px;
+      height: 44px;
+      display: block;
+    }
+    .meet-lumen-03-bug-name {
+      font-family: "Instrument Serif", serif;
+      font-weight: 400;
+      font-size: 30px;
+      line-height: 1;
+      color: #121214;
+    }
+    .meet-lumen-03-bug-tag {
+      font-family: "Archivo", sans-serif;
+      font-weight: 600;
+      font-size: 11px;
+      line-height: 1.2;
+      letter-spacing: 0.18em;
+      color: rgba(18, 18, 20, 0.7);
+    }
+    .meet-lumen-03-subword {
+      display: inline-block;
+      margin-right: 0.26em;
+    }
+  </style>
+
+  <div data-hf-id="hf-hdyg"
+    id="root"
+    data-composition-id="03-meet-lumen"
+    data-width="1920"
+    data-height="1080"
+    data-duration="6.03"
+  >
+    <svg data-hf-id="hf-p3r6" width="0" height="0" aria-hidden="true" style="position: absolute">
+      <filter data-hf-id="hf-f320" id="meet-lumen-03-streak" x="-50%" y="-50%" width="200%" height="200%">
+        <feGaussianBlur data-hf-id="hf-wstt" id="meet-lumen-03-streak-blur" in="SourceGraphic" stdDeviation="0 0" />
+      </filter>
+    </svg>
+
+    <div data-hf-id="hf-252o"
+      id="meet-lumen-03-ground"
+      class="meet-lumen-03-ground clip"
+      data-start="0"
+      data-duration="6.03"
+      data-track-index="0"
+    ></div>
+
+    <div data-hf-id="hf-1snr"
+      id="meet-lumen-03-stage"
+      class="meet-lumen-03-stage clip"
+      data-start="0"
+      data-duration="6.03"
+      data-track-index="1"
+    >
+      <div data-hf-id="hf-1l46" class="meet-lumen-03-glow" id="meet-lumen-03-glow"></div>
+
+      <div data-hf-id="hf-gury" class="meet-lumen-03-dock" id="meet-lumen-03-dock">
+        <div data-hf-id="hf-ipne" class="meet-lumen-03-tile"></div>
+        <div data-hf-id="hf-s6uz" class="meet-lumen-03-tile is-b"></div>
+        <div data-hf-id="hf-o8qy" class="meet-lumen-03-tile is-c"></div>
+        <div data-hf-id="hf-lo57" class="meet-lumen-03-tile is-b"></div>
+        <div data-hf-id="hf-vh4u" class="meet-lumen-03-tile"></div>
+      </div>
+
+      <div data-hf-id="hf-pw8w" class="meet-lumen-03-track" id="meet-lumen-03-track">
+        <div data-hf-id="hf-azje" class="meet-lumen-03-flutter" id="meet-lumen-03-flutter">
+          <div data-hf-id="hf-7i7y" class="meet-lumen-03-tilt" id="meet-lumen-03-tilt">
+            <img data-hf-id="hf-12yh" class="meet-lumen-03-pose" id="meet-lumen-03-fly" src="assets/lumen-fly.png" alt="" />
+            <img data-hf-id="hf-es69" class="meet-lumen-03-pose" id="meet-lumen-03-read" src="assets/lumen-read.png" alt="" />
+            <img data-hf-id="hf-zipx" class="meet-lumen-03-pose" id="meet-lumen-03-wave" src="assets/lumen-wave.png" alt="" />
+          </div>
+        </div>
+      </div>
+
+      <div class="meet-lumen-03-bug" id="meet-lumen-03-bug">
+        <img class="meet-lumen-03-bug-icon" src="assets/app-icon.png" alt="" />
+        <div>
+          <div class="meet-lumen-03-bug-name">Narrator</div>
+          <div class="meet-lumen-03-bug-tag">AI READING AGENT</div>
+        </div>
+      </div>
+
+      <p class="meet-lumen-03-kicker" id="meet-lumen-03-kicker"><span class="meet-lumen-03-kword">And</span><span class="meet-lumen-03-kword">it</span><span class="meet-lumen-03-kword">has</span><span class="meet-lumen-03-kword">a</span><span class="meet-lumen-03-kword">face.</span></p>
+
+      <h1 data-hf-id="hf-l6ro" class="meet-lumen-03-headline">
+        <span data-hf-id="hf-smut" class="meet-lumen-03-word" id="meet-lumen-03-meet">Meet</span><span data-hf-id="hf-zegm"
+          class="meet-lumen-03-word meet-lumen-03-name"
+          id="meet-lumen-03-lumen"
+          >Lumen</span
+        >
+      </h1>
+
+      <p data-hf-id="hf-v6s5" class="meet-lumen-03-sub" id="meet-lumen-03-sub">
+        <span class="meet-lumen-03-subword">The</span><span class="meet-lumen-03-subword">moth</span><span class="meet-lumen-03-subword">who</span><span class="meet-lumen-03-subword">reads</span><span class="meet-lumen-03-subword">with</span><span class="meet-lumen-03-subword">you,</span><span class="meet-lumen-03-subword">right</span><span class="meet-lumen-03-subword">from</span><span class="meet-lumen-03-subword">your</span><span class="meet-lumen-03-subword">Dock.</span>
+      </p>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+  <script>
+    (function () {
+      const root = document.querySelector('[data-composition-id="03-meet-lumen"]');
+      const $ = (id) => root.querySelector("#" + id);
+
+      const track = $("meet-lumen-03-track");
+      const flutter = $("meet-lumen-03-flutter");
+      const tilt = $("meet-lumen-03-tilt");
+      const fly = $("meet-lumen-03-fly");
+      const read = $("meet-lumen-03-read");
+      const wave = $("meet-lumen-03-wave");
+      const glow = $("meet-lumen-03-glow");
+      const blurNode = $("meet-lumen-03-streak-blur");
+      const subWords = root.querySelectorAll(".meet-lumen-03-subword");
+      const kickerWords = root.querySelectorAll(".meet-lumen-03-kword");
+
+      const tl = gsap.timeline({ paused: true });
+
+      // initial pose + glow state
+      tl.set(fly, { opacity: 1 }, 0);
+      tl.set([read, wave], { opacity: 0 }, 0);
+
+      // brand bug: fades in, never moves
+      tl.fromTo("#meet-lumen-03-bug", { opacity: 0 }, { opacity: 0.85, duration: 0.3, ease: "power1.out" }, 0);
+
+      // ── Scene 1 (0.0–1.7s): glide in from upper right on a descending arc toward the Dock ──
+      const MOVE_START = 0;
+      const MOVE_DUR = 2.0;
+      const MOVE_EASE = "power3.out";
+
+      tl.fromTo(track, { opacity: 0 }, { opacity: 1, duration: 0.25, ease: "power1.out" }, MOVE_START);
+      tl.fromTo(track, { x: 620 }, { x: 0, duration: MOVE_DUR, ease: MOVE_EASE }, MOVE_START);
+      tl.fromTo(track, { y: -400 }, { y: -18, duration: MOVE_DUR, ease: "sine.inOut" }, MOVE_START);
+      tl.fromTo(tilt, { rotation: -12 }, { rotation: 0, duration: MOVE_DUR, ease: "power2.out" }, MOVE_START);
+
+      // light directional streak, riding the same window + ease as the glide
+      const PEAK_BLUR = 9;
+      const blurProxy = { v: PEAK_BLUR };
+      const writeBlur = () =>
+        blurNode.setAttribute("stdDeviation", blurProxy.v.toFixed(2) + " " + (blurProxy.v * 0.4).toFixed(2));
+      writeBlur();
+      tl.to(blurProxy, { v: 0, duration: MOVE_DUR, ease: MOVE_EASE, onUpdate: writeBlur }, MOVE_START);
+
+      // flutter: three small bobs that decay to rest by the landing (bounded, ends at exactly 0)
+      const bob = { p: 0 };
+      tl.to(
+        bob,
+        {
+          p: 1,
+          duration: MOVE_DUR,
+          ease: "none",
+          onUpdate: () => {
+            const y = Math.sin(bob.p * Math.PI * 6) * 7 * (1 - bob.p);
+            flutter.style.transform = "translateY(" + y.toFixed(2) + "px)";
+          },
+        },
+        MOVE_START,
+      );
+
+      // "And it has a face." sets word by word, 0.30 to 0.98
+      tl.fromTo(
+        kickerWords,
+        { opacity: 0, y: 18 },
+        { opacity: 1, y: 0, duration: 0.4, ease: "power2.out", stagger: 0.17 },
+        0.3,
+      );
+
+      // ── Scene 2 (1.7–2.7s): "Meet" on 1.76, "Lumen" on 2.08; Lumen lands and reads ──
+      tl.fromTo(
+        "#meet-lumen-03-meet",
+        { opacity: 0, y: 30 },
+        { opacity: 1, y: 0, duration: 0.6, ease: "expo.out" },
+        1.76,
+      );
+      tl.fromTo(
+        "#meet-lumen-03-lumen",
+        { opacity: 0, x: 48 },
+        { opacity: 1, x: 0, duration: 0.6, ease: "expo.out" },
+        2.08,
+      );
+      tl.to(fly, { opacity: 0, duration: 0.14, ease: "none" }, 2.08);
+      tl.to(read, { opacity: 1, duration: 0.14, ease: "none" }, 2.08);
+      tl.to(track, { y: 0, duration: 0.35, ease: "power2.out" }, 2.08);
+
+      // ── Scene 3 (2.7–5.53s): subline sets word by word from 2.73, "Dock" lands on 4.54 ──
+      tl.fromTo(
+        subWords,
+        { opacity: 0, y: 16 },
+        { opacity: 1, y: 0, duration: 0.4, ease: "power2.out", stagger: 0.2 },
+        2.73,
+      );
+
+      // on "Dock" Lumen waves with a small hop; sun glow blooms behind, then hold
+      tl.to(read, { opacity: 0, duration: 0.14, ease: "none" }, 4.54);
+      tl.to(wave, { opacity: 1, duration: 0.14, ease: "none" }, 4.54);
+      tl.to(track, { y: -12, duration: 0.16, ease: "power2.out" }, 4.54);
+      tl.to(track, { y: 0, duration: 0.19, ease: "power2.in" }, 4.7);
+
+      // ambient-glow-bloom, bloom-and-hold: lands with the hop (4.89s)
+      tl.fromTo(
+        glow,
+        { opacity: 0, scale: 0.85 },
+        { opacity: 0.32, scale: 1, duration: 0.55, ease: "power2.out" },
+        4.34,
+      );
+
+      window.__timelines = window.__timelines || {};
+      window.__timelines["03-meet-lumen"] = tl;
+    })();
+  </script>
+</template>

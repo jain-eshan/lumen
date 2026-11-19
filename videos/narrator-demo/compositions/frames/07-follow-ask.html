@@ -1,0 +1,462 @@
+<template id="07-follow-ask-template">
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+  <style>
+@font-face { font-family: "Instrument Serif"; font-style: normal; font-weight: 400; src: url("assets/fonts/InstrumentSerif.ttf") format("truetype"); font-display: block; }
+@font-face { font-family: "Instrument Serif"; font-style: italic; font-weight: 400; src: url("assets/fonts/InstrumentSerif-Italic.woff2") format("woff2"); font-display: block; }
+@font-face { font-family: "Archivo"; font-style: normal; font-weight: 100 900; src: url("assets/fonts/Archivo.ttf") format("truetype"); font-display: block; }
+    #root {
+      position: absolute;
+      inset: 0;
+      width: 1920px;
+      height: 1080px;
+      overflow: hidden;
+      container-type: size;
+      color: #121214;
+      font-family: "Archivo", "Helvetica Neue", Arial, sans-serif;
+    }
+    [id="07-follow-ask-bg"] {
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 34% 30% at 92% 10%, rgba(185, 168, 214, 0.2) 0%, rgba(185, 168, 214, 0) 100%),
+        radial-gradient(ellipse 46% 52% at 47% 46%, rgba(255, 199, 41, 0.78) 0%, rgba(255, 227, 148, 0.55) 34%, rgba(255, 217, 109, 0.2) 64%, rgba(247, 243, 234, 0) 100%),
+        #f7f3ea;
+    }
+    /* page plane: playback bar + chat card (the layer that racks out of focus) */
+    [id="07-follow-ask-page"] {
+      position: absolute;
+      inset: 0;
+      transform-origin: 34% 40%;
+    }
+    [id="07-follow-ask-page"] .fa07-plane {
+      --dof: 0px;
+      filter: blur(var(--dof));
+      will-change: filter;
+    }
+    [id="07-follow-ask-bar"] {
+      position: absolute;
+      left: 120px;
+      top: 128px;
+      width: 1056px;
+      height: 107px;
+      display: block;
+    }
+    [id="07-follow-ask-card"] {
+      position: absolute;
+      left: 120px;
+      top: 278px;
+      width: 1056px;
+      height: 470px;
+      box-sizing: border-box;
+      padding: 48px 56px;
+      background: #fffdf7;
+      border: 1px solid rgba(18, 18, 20, 0.18);
+    }
+    [id="07-follow-ask-user"] {
+      display: flex;
+      justify-content: flex-end;
+    }
+    [id="07-follow-ask-user"] span {
+      display: inline-block;
+      background: #ffe6a1;
+      padding: 18px 28px;
+      font-size: 30px;
+      line-height: 40px;
+      white-space: nowrap;
+    }
+    [id="07-follow-ask-label"] {
+      margin-top: 40px;
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      line-height: 22px;
+    }
+    [id="07-follow-ask-reply"] {
+      margin-top: 16px;
+      min-height: 192px;
+    }
+    [id="07-follow-ask-reply"] .fa07-line {
+      display: block;
+      width: fit-content;
+      margin-left: -10px;
+      padding: 0 10px;
+      font-size: 31px;
+      line-height: 48px;
+      white-space: nowrap;
+      background-color: rgba(255, 199, 41, 0);
+    }
+    [id="07-follow-ask-reply"] .fa07-word {
+      display: inline-block;
+      opacity: 0;
+    }
+    /* ask layer */
+    [id="07-follow-ask-keys"] {
+      position: absolute;
+      left: 0;
+      top: 380px;
+      width: 1920px;
+      height: 68px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 18px;
+    }
+    [id="07-follow-ask-keys"] .fa07-key {
+      height: 64px;
+      min-width: 70px;
+      box-sizing: border-box;
+      padding: 0 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #fffdf7;
+      border: 1px solid #121214;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 28px;
+      letter-spacing: 0.04em;
+      color: #121214;
+      opacity: 0;
+    }
+    [id="07-follow-ask-keys"] .fa07-plus {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 28px;
+      color: rgba(18, 18, 20, 0.6);
+      opacity: 0;
+    }
+    [id="07-follow-ask-box"] {
+      position: absolute;
+      left: 400px;
+      top: 478px;
+      width: 1120px;
+      height: 184px;
+      opacity: 0;
+    }
+    [id="07-follow-ask-box"] img {
+      position: absolute;
+      inset: 0;
+      width: 1120px;
+      height: 184px;
+      display: block;
+    }
+    [id="07-follow-ask-patch"] {
+      position: absolute;
+      left: 50px;
+      top: 40px;
+      width: 560px;
+      height: 56px;
+      background: rgb(57, 56, 59);
+      opacity: 0;
+    }
+    [id="07-follow-ask-typed"] {
+      position: absolute;
+      left: 60px;
+      top: 41px;
+      height: 50px;
+      display: flex;
+      align-items: center;
+      font-size: 28px;
+      line-height: 50px;
+      color: #ffffff;
+      white-space: pre;
+    }
+    [id="07-follow-ask-caret"] {
+      display: inline-block;
+      width: 3px;
+      height: 32px;
+      margin-left: 2px;
+      background: #ffffff;
+      opacity: 0;
+    }
+    /* dock + Lumen */
+    [id="07-follow-ask-dock"] {
+      position: absolute;
+      left: 1440px;
+      top: 800px;
+      width: 420px;
+      height: 78px;
+      border-radius: 22px;
+      background: rgba(18, 18, 20, 0.92);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 16px;
+    }
+    [id="07-follow-ask-dock"] i {
+      display: block;
+      width: 50px;
+      height: 50px;
+      border-radius: 13px;
+    }
+    [id="07-follow-ask-lumen"] img {
+      position: absolute;
+      left: 1560px;
+      top: 562px;
+      width: 241px;
+      height: 244px;
+      display: block;
+      opacity: 0;
+    }
+    [id="07-follow-ask-lumen"] [data-pose="read"] {
+      opacity: 1;
+    }
+    [id="07-follow-ask-dots"] {
+      position: absolute;
+      left: 1712px;
+      top: 548px;
+      display: flex;
+      gap: 10px;
+    }
+    [id="07-follow-ask-dots"] b {
+      display: block;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #121214;
+      opacity: 0;
+    }
+    /* brand bug: identical in frames 3 to 7, static, above the dimmed page plane */
+    [id="07-follow-ask-bug"] {
+      position: absolute;
+      left: 64px;
+      top: 52px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      opacity: 0.85;
+    }
+    [id="07-follow-ask-bug"] img {
+      width: 44px;
+      height: 44px;
+      display: block;
+    }
+    [id="07-follow-ask-bug"] .fa07-bug-name {
+      font-family: "Instrument Serif", serif;
+      font-size: 30px;
+      line-height: 1;
+      color: #121214;
+    }
+    [id="07-follow-ask-bug"] .fa07-bug-tag {
+      font-family: "Archivo", sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.18em;
+      color: rgba(18, 18, 20, 0.7);
+    }
+  </style>
+
+  <div data-hf-id="hf-ayya" id="root" data-composition-id="07-follow-ask" data-start="0" data-duration="8.45" data-width="1920" data-height="1080">
+    <div data-hf-id="hf-t40f" id="07-follow-ask-bg" class="clip" data-start="0" data-duration="8.45" data-track-index="0"></div>
+
+    <div data-hf-id="hf-0siq" id="07-follow-ask-page" data-layout-allow-occlusion class="clip" data-start="0" data-duration="8.45" data-track-index="1">
+      <img data-hf-id="hf-mhpd" id="07-follow-ask-bar" class="fa07-plane" src="assets/bar-following.png" alt="" />
+      <div data-hf-id="hf-58dl" id="07-follow-ask-card" class="fa07-plane">
+        <div data-hf-id="hf-nk9s" id="07-follow-ask-user"><span data-hf-id="hf-nmsj">How do I make a new habit stick?</span></div>
+        <div data-hf-id="hf-bc0z" id="07-follow-ask-label">Claude</div>
+        <div data-hf-id="hf-1nur" id="07-follow-ask-reply" data-layout-allow-overlap></div>
+      </div>
+    </div>
+
+    <div data-hf-id="hf-p7g3" id="07-follow-ask-ask" data-layout-allow-occlusion class="clip" data-start="0" data-duration="8.45" data-track-index="2">
+      <div data-hf-id="hf-4m49" id="07-follow-ask-keys">
+        <div data-hf-id="hf-lnsb" class="fa07-key">Option</div>
+        <div data-hf-id="hf-cfwq" class="fa07-plus">+</div>
+        <div data-hf-id="hf-2kd2" class="fa07-key">Shift</div>
+        <div data-hf-id="hf-mwcu" class="fa07-plus">+</div>
+        <div data-hf-id="hf-lav9" class="fa07-key">A</div>
+      </div>
+      <div data-hf-id="hf-h9pg" id="07-follow-ask-box">
+        <img data-hf-id="hf-aowk" src="assets/ask-box.png" alt="" />
+        <div data-hf-id="hf-6a7x" id="07-follow-ask-patch"></div>
+        <div data-hf-id="hf-zt1r" id="07-follow-ask-typed"><span data-hf-id="hf-3g9x" id="07-follow-ask-text" data-layout-allow-overlap></span><span data-hf-id="hf-4erj" id="07-follow-ask-caret"></span></div>
+      </div>
+    </div>
+
+    <div data-hf-id="hf-lu8g" id="07-follow-ask-dockwrap" class="clip" data-start="0" data-duration="8.45" data-track-index="3">
+      <div data-hf-id="hf-b210" id="07-follow-ask-dock">
+        <i data-hf-id="hf-2svx" style="background: #3b3a40"></i>
+        <i data-hf-id="hf-4hfh" style="background: #4d4656"></i>
+        <i data-hf-id="hf-qr4u" style="background: #5b5240"></i>
+        <i data-hf-id="hf-8bgj" style="background: #3f4a47"></i>
+        <i data-hf-id="hf-to4r" style="background: #4a4048"></i>
+      </div>
+      <div data-hf-id="hf-wxsg" id="07-follow-ask-lumen">
+        <img data-hf-id="hf-vw96" data-pose="read" src="assets/lumen-read.png" alt="" />
+        <img data-hf-id="hf-kbiq" data-pose="talk" src="assets/lumen-talk.png" alt="" />
+        <img data-hf-id="hf-t9g2" data-pose="listen" src="assets/lumen-listen.png" alt="" />
+        <img data-hf-id="hf-hqwc" data-pose="think" src="assets/lumen-think.png" alt="" />
+      </div>
+      <div data-hf-id="hf-0x39" id="07-follow-ask-dots"><b data-hf-id="hf-xujp"></b><b data-hf-id="hf-ey49"></b><b data-hf-id="hf-g51c"></b></div>
+    </div>
+
+    <div id="07-follow-ask-bug" class="clip" data-start="0" data-duration="8.45" data-track-index="4">
+      <img src="assets/app-icon.png" alt="" />
+      <div>
+        <div class="fa07-bug-name">Narrator</div>
+        <div class="fa07-bug-tag">AI READING AGENT</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      const ID = "07-follow-ask";
+      const $ = (s) => document.getElementById(ID + "-" + s);
+      const tl = gsap.timeline({ paused: true });
+
+      const page = $("page");
+      const bar = $("bar");
+      const card = $("card");
+      const user = $("user");
+      const label = $("label");
+      const reply = $("reply");
+      const keysRow = $("keys");
+      const keys = keysRow.querySelectorAll(".fa07-key");
+      const pluses = keysRow.querySelectorAll(".fa07-plus");
+      const box = $("box");
+      const patch = $("patch");
+      const textEl = $("text");
+      const caret = $("caret");
+      const lumen = $("lumen");
+      const pose = (n) => lumen.querySelector('[data-pose="' + n + '"]');
+      const dots = $("dots").querySelectorAll("b");
+
+      // ---- Scene 1 (0.0 to 1.6s): chat card enters with the user bubble
+      tl.fromTo(card, { opacity: 0, y: 36 }, { opacity: 1, y: 0, duration: 0.7, ease: "power3.out" }, 0.05);
+      tl.fromTo(user, { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.5, ease: "power3.out" }, 0.3);
+      // ---- Scene 2 (1.6 to 3.7s): on "It reads every new reply out loud" the Following bar slides down
+      tl.fromTo(bar, { opacity: 0, y: -250 }, { opacity: 1, y: 0, duration: 0.65, ease: "power3.out" }, 1.64);
+
+      // reply streams word by word (content-length timing)
+      const LINES = [
+        "Start small enough that skipping feels silly.",
+        "Tie it to something you already do, like making coffee.",
+        "And track your streak, because watching it grow",
+        "is its own reward.",
+      ];
+      const lineEls = [];
+      const WORDS = [];
+      LINES.forEach((line, li) => {
+        const lineEl = document.createElement("div");
+        lineEl.className = "fa07-line";
+        line.split(" ").forEach((w, wi, arr) => {
+          const span = document.createElement("span");
+          span.className = "fa07-word";
+          span.textContent = w;
+          lineEl.appendChild(span);
+          if (wi < arr.length - 1) lineEl.appendChild(document.createTextNode(" "));
+          WORDS.push({ el: span, line: li, len: w.length });
+        });
+        reply.appendChild(lineEl);
+        lineEls.push(lineEl);
+      });
+
+      tl.fromTo(label, { opacity: 0 }, { opacity: 1, duration: 0.3, ease: "power1.out" }, 1.66);
+
+      const STREAM_START = 1.82;
+      const STREAM_END = 3.4;
+      const BASE = 0.02;
+      const SEC_PER_CHAR = 0.012;
+      const raw = WORDS.map((w) => BASE + (w.len + 1) * SEC_PER_CHAR);
+      const rawTotal = raw.reduce((a, b) => a + b, 0);
+      const k = (STREAM_END - STREAM_START) / rawTotal;
+      let cum = STREAM_START;
+      const lineStart = [];
+      WORDS.forEach((w, i) => {
+        w.start = cum;
+        cum += raw[i] * k;
+        if (lineStart[w.line] === undefined) lineStart[w.line] = w.start;
+        tl.fromTo(w.el, { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.22, ease: "power2.out" }, w.start);
+      });
+      const HL_ON = "rgba(255, 199, 41, 0.34)";
+      const HL_OFF = "rgba(255, 199, 41, 0)";
+      lineEls.forEach((el, li) => {
+        tl.fromTo(el, { backgroundColor: HL_OFF }, { backgroundColor: HL_ON, duration: 0.2, ease: "power1.out" }, lineStart[li]);
+        if (li > 0) {
+          tl.fromTo(
+            lineEls[li - 1],
+            { backgroundColor: HL_ON },
+            { backgroundColor: HL_OFF, duration: 0.3, ease: "power1.out", immediateRender: false },
+            lineStart[li]
+          );
+        }
+      });
+
+      // Lumen lip-sync: lumen-talk at the listed word starts, about 0.12s each
+      const TALK = [1.64, 1.82, 2.19, 2.55, 2.8, 3.16, 3.4];
+      const read = pose("read");
+      const talk = pose("talk");
+      const listen = pose("listen");
+      const think = pose("think");
+      TALK.forEach((s, i) => {
+        const next = i < TALK.length - 1 ? TALK[i + 1] : Infinity;
+        const end = Math.min(s + 0.12, next - 0.03);
+        tl.set(talk, { opacity: 1 }, s);
+        tl.set(read, { opacity: 0 }, s);
+        tl.set(talk, { opacity: 0 }, end);
+        tl.set(read, { opacity: 1 }, end);
+      });
+
+      // ---- Scene 3 (3.7 to 4.9s): on "Stuck on something?" the page plane racks back, Ask box drops in, Lumen listens
+      const FOCUS_START = 3.77;
+      tl.fromTo(card, { "--dof": "0px", opacity: 1 }, { "--dof": "6px", opacity: 0.5, duration: 0.8, ease: "power2.inOut", immediateRender: false }, FOCUS_START);
+      tl.fromTo(bar, { "--dof": "0px", opacity: 1 }, { "--dof": "8px", opacity: 0.45, duration: 0.8, ease: "power2.inOut", immediateRender: false }, FOCUS_START);
+      tl.fromTo(page, { scale: 1 }, { scale: 0.965, duration: 0.8, ease: "power2.inOut" }, FOCUS_START);
+      tl.fromTo(box, { opacity: 0, y: -70 }, { opacity: 1, y: 0, duration: 0.8, ease: "back.out(1.1)" }, 3.82);
+      tl.set(read, { opacity: 0 }, 3.77);
+      tl.set(listen, { opacity: 1 }, 3.77);
+
+      // ---- Scene 4 (4.9 to 8.05s): keycaps press in, the question types, submit, Lumen thinks
+      const KEY_T = [5.35, 5.84, 6.26];
+      keys.forEach((key, i) => {
+        const t = KEY_T[i];
+        if (i > 0) tl.fromTo(pluses[i - 1], { opacity: 0 }, { opacity: 1, duration: 0.2 }, t - 0.05);
+        tl.fromTo(key, { opacity: 0, scale: 0.7, y: -12 }, { opacity: 1, scale: 1, y: 0, duration: 0.32, ease: "back.out(2)" }, t);
+        tl.fromTo(key, { y: 0, backgroundColor: "#fffdf7" }, { y: 5, backgroundColor: "#ffc729", duration: 0.08, ease: "power2.in", immediateRender: false }, t + 0.34);
+        tl.fromTo(key, { y: 5, backgroundColor: "#ffc729" }, { y: 0, backgroundColor: "#ffe394", duration: 0.22, ease: "back.out(3)", immediateRender: false }, t + 0.42);
+      });
+
+      // placeholder clears, caret blinks, then the question types behind the caret
+      tl.set(patch, { opacity: 1 }, 5.4);
+      tl.set(caret, { opacity: 1 }, 5.4);
+      tl.set(caret, { opacity: 0 }, 5.75);
+      tl.set(caret, { opacity: 1 }, 6.05);
+
+      const Q = "Why does the Moon cause tides?";
+      // types from 6.3 and lands just before the submit on "ask" (7.0)
+      const TYPE_START = 6.3;
+      const SEC_PER_TYPED = 0.023;
+      // one span per character, revealed by tl.set (no callbacks, so seeking with suppressed events still shows it)
+      Q.split("").forEach((ch, i) => {
+        const c = document.createElement("span");
+        c.textContent = ch;
+        c.style.display = "none";
+        textEl.appendChild(c);
+        tl.set(c, { display: "inline" }, TYPE_START + i * SEC_PER_TYPED);
+      });
+
+      // submit: caret stops, the Ask box takes a short press
+      const SUBMIT = 7.0;
+      tl.set(caret, { opacity: 0 }, SUBMIT);
+      tl.fromTo(box, { scale: 1 }, { scale: 0.985, duration: 0.09, ease: "power2.in", immediateRender: false }, SUBMIT);
+      tl.fromTo(box, { scale: 0.985 }, { scale: 1, duration: 0.26, ease: "back.out(3)", immediateRender: false }, SUBMIT + 0.09);
+
+      // on "ask": Lumen thinks, three dots pop and pulse in turn (finite, deterministic)
+      tl.set(listen, { opacity: 0 }, 7.0);
+      tl.set(think, { opacity: 1 }, 7.0);
+      dots.forEach((d, i) => {
+        tl.fromTo(d, { opacity: 0, scale: 0 }, { opacity: 1, scale: 1, duration: 0.25, ease: "back.out(2.5)" }, 7.02 + i * 0.08);
+      });
+      for (let p = 0, t = 7.4; t + 0.2 <= 8.05; p++, t += 0.18) {
+        const d = dots[p % 3];
+        tl.fromTo(d, { opacity: 1 }, { opacity: 0.3, duration: 0.09, ease: "power1.inOut", immediateRender: false }, t);
+        tl.fromTo(d, { opacity: 0.3 }, { opacity: 1, duration: 0.09, ease: "power1.inOut", immediateRender: false }, t + 0.09);
+      }
+
+      // hold to the frame's fixed length
+      tl.set({}, {}, 8.05);
+
+      window.__timelines[ID] = tl;
+    })();
+  </script>
+</template>

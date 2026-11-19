@@ -1,0 +1,328 @@
+<template id="f06-template" data-composition-id="06-reading" data-width="1920" data-height="1080" data-duration="6.9">
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+<style>
+@font-face { font-family: "Instrument Serif"; font-style: normal; font-weight: 400; src: url("assets/fonts/InstrumentSerif.ttf") format("truetype"); font-display: block; }
+@font-face { font-family: "Instrument Serif"; font-style: italic; font-weight: 400; src: url("assets/fonts/InstrumentSerif-Italic.woff2") format("woff2"); font-display: block; }
+@font-face { font-family: "Archivo"; font-style: normal; font-weight: 100 900; src: url("assets/fonts/Archivo.ttf") format("truetype"); font-display: block; }
+  #root[data-composition-id="06-reading"] {
+    position: relative;
+    width: 1920px;
+    height: 1080px;
+    overflow: hidden;
+    container-type: size;
+  }
+  [data-composition-id="06-reading"] .f06-ground {
+    position: absolute;
+    inset: 0;
+    background: #F7F3EA;
+  }
+  [data-composition-id="06-reading"] .f06-sun-bloom {
+    position: absolute;
+    left: -60px;
+    top: 40px;
+    width: 1500px;
+    height: 1000px;
+    background: radial-gradient(ellipse at 50% 50%,
+      rgba(255, 199, 41, 0.62) 0%,
+      rgba(255, 227, 148, 0.42) 32%,
+      rgba(255, 217, 109, 0.18) 56%,
+      rgba(247, 243, 234, 0) 74%);
+  }
+  [data-composition-id="06-reading"] .f06-ember-bloom {
+    position: absolute;
+    right: -260px;
+    top: -300px;
+    width: 900px;
+    height: 900px;
+    background: radial-gradient(circle at 50% 50%,
+      rgba(185, 168, 214, 0.2) 0%,
+      rgba(185, 168, 214, 0.08) 45%,
+      rgba(185, 168, 214, 0) 70%);
+  }
+
+  /* real playback bar, 58% of frame width, centered at the top */
+  [data-composition-id="06-reading"] .f06-bar {
+    position: absolute;
+    left: 403px;
+    top: 44px;
+    width: 1114px;
+    height: auto;
+    display: block;
+  }
+
+  /* the page card, same tides text as Frame 4 */
+  [data-composition-id="06-reading"] .f06-page {
+    position: absolute;
+    left: 190px;
+    top: 214px;
+    width: 1210px;
+    height: 486px;
+  }
+  [data-composition-id="06-reading"] .f06-card {
+    position: absolute;
+    inset: 0;
+    background: #FFFFFF;
+    border: 1px solid rgba(18, 18, 20, 0.18);
+    border-radius: 18px;
+    padding: 62px 76px;
+    font-family: "Archivo", system-ui, sans-serif;
+    font-weight: 400;
+    font-size: 40px;
+    line-height: 64px;
+    color: #121214;
+  }
+  [data-composition-id="06-reading"] .f06-sentence {
+    margin-bottom: 22px;
+  }
+  [data-composition-id="06-reading"] .f06-line {
+    display: block;
+    white-space: nowrap;
+  }
+  [data-composition-id="06-reading"] .f06-mark {
+    position: relative;
+    display: inline-block;
+  }
+  [data-composition-id="06-reading"] .f06-hl-bar {
+    position: absolute;
+    top: 6px;
+    bottom: 4px;
+    left: -8px;
+    right: -8px;
+    background: #FFC729;
+    opacity: 0.6;
+    transform: scaleX(0);
+    transform-origin: left center;
+    border-radius: 4px;
+    z-index: 0;
+  }
+  [data-composition-id="06-reading"] .f06-hl-text {
+    position: relative;
+    z-index: 1;
+  }
+
+  /* label beside Lumen */
+  [data-composition-id="06-reading"] .f06-label {
+    position: absolute;
+    right: 400px;
+    top: 726px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  [data-composition-id="06-reading"] .f06-label-text {
+    font-family: "Archivo", system-ui, sans-serif;
+    font-weight: 600;
+    font-size: 22px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: #121214;
+    white-space: nowrap;
+  }
+  [data-composition-id="06-reading"] .f06-label-rule {
+    width: 64px;
+    height: 1px;
+    background: #121214;
+    transform-origin: left center;
+  }
+
+  /* the Dock: ink strip with five muted tiles, just above the caption band */
+  [data-composition-id="06-reading"] .f06-dock {
+    position: absolute;
+    left: 1000px;
+    top: 806px;
+    width: 860px;
+    height: 74px;
+    border-radius: 22px;
+    background: rgba(18, 18, 20, 0.92);
+  }
+  [data-composition-id="06-reading"] .f06-tile {
+    position: absolute;
+    top: 11px;
+    width: 52px;
+    height: 52px;
+    border-radius: 13px;
+    background: rgba(247, 243, 234, 0.16);
+  }
+
+  /* Lumen: 24% of frame height (259px), feet on the Dock top */
+  [data-composition-id="06-reading"] .f06-lumen {
+    position: absolute;
+    left: 1566px;
+    top: 553px;
+    width: 256px;
+    height: 259px;
+  }
+  [data-composition-id="06-reading"] .f06-lumen img {
+    position: absolute;
+    inset: 0;
+    width: 256px;
+    height: 259px;
+    display: block;
+  }
+  /* lantern glow at 54% across, 79% down the Lumen box (138px, 205px) */
+  [data-composition-id="06-reading"] .f06-glow {
+    position: absolute;
+    left: 78px;
+    top: 145px;
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 50% 50%,
+      rgba(255, 199, 41, 0.9) 0%,
+      rgba(255, 227, 148, 0.55) 30%,
+      rgba(255, 217, 109, 0.18) 55%,
+      rgba(255, 217, 109, 0) 72%);
+    opacity: 0.2;
+  }
+  /* brand bug, identical in frames 3 to 7 */
+  [data-composition-id="06-reading"] .f06-bug {
+    position: absolute;
+    left: 64px;
+    top: 52px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    opacity: 0.85;
+  }
+  [data-composition-id="06-reading"] .f06-bug-icon {
+    width: 44px;
+    height: 44px;
+    display: block;
+  }
+  [data-composition-id="06-reading"] .f06-bug-name {
+    font-family: "Instrument Serif", serif;
+    font-size: 30px;
+    line-height: 1;
+    color: #121214;
+  }
+  [data-composition-id="06-reading"] .f06-bug-tag {
+    margin-top: 4px;
+    font-family: "Archivo", system-ui, sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    line-height: 1;
+    color: rgba(18, 18, 20, 0.7);
+    white-space: nowrap;
+  }
+</style>
+
+<div data-hf-id="hf-17b8"
+  id="root"
+  data-composition-id="06-reading"
+  data-start="0"
+  data-duration="6.9"
+  data-width="1920"
+  data-height="1080"
+>
+  <div data-hf-id="hf-o5t2" class="f06-ground clip" data-start="0" data-duration="6.9" data-track-index="0">
+    <div data-hf-id="hf-9mzv" class="f06-sun-bloom"></div>
+    <div data-hf-id="hf-b76c" class="f06-ember-bloom"></div>
+  </div>
+
+  <div data-hf-id="hf-trip" id="f06-page" class="f06-page clip" data-start="0" data-duration="6.9" data-track-index="1">
+    <div data-hf-id="hf-ndsz" class="f06-card">
+      <div data-hf-id="hf-f5al" class="f06-sentence" id="f06-s1">
+        <span data-hf-id="hf-1opi" class="f06-line"><span data-hf-id="hf-cqzf" class="f06-mark"><span data-hf-id="hf-muxo" class="f06-hl-bar"></span><span data-hf-id="hf-30z1" class="f06-hl-text">Tides rise and fall twice a day.</span></span></span>
+      </div>
+      <div data-hf-id="hf-j3em" class="f06-sentence" id="f06-s2">
+        <span data-hf-id="hf-sth6" class="f06-line"><span data-hf-id="hf-gct7" class="f06-mark"><span data-hf-id="hf-8hsk" class="f06-hl-bar"></span><span data-hf-id="hf-19z3" class="f06-hl-text">The Moon's gravity pulls the ocean toward it,</span></span></span>
+        <span data-hf-id="hf-t7s7" class="f06-line"><span data-hf-id="hf-fyi6" class="f06-mark"><span data-hf-id="hf-7avh" class="f06-hl-bar"></span><span data-hf-id="hf-afzi" class="f06-hl-text">and the Earth's spin carries every coast</span></span></span>
+        <span data-hf-id="hf-tm38" class="f06-line"><span data-hf-id="hf-fk75" class="f06-mark"><span data-hf-id="hf-7p6i" class="f06-hl-bar"></span><span data-hf-id="hf-nv8t" class="f06-hl-text">through that bulge of water.</span></span></span>
+      </div>
+      <div data-hf-id="hf-n1in" class="f06-sentence" id="f06-s3">
+        <span data-hf-id="hf-u0e9" class="f06-line"><span data-hf-id="hf-f5w4" class="f06-mark"><span data-hf-id="hf-9opn" class="f06-hl-bar"></span><span data-hf-id="hf-0238" class="f06-hl-text">Spring tides come when the Sun and Moon line up.</span></span></span>
+      </div>
+    </div>
+  </div>
+
+  <img data-hf-id="hf-3hv4" id="f06-bar" class="f06-bar clip" src="assets/bar-reading.png" alt="" data-start="0" data-duration="6.9" data-track-index="2" />
+
+  <div data-hf-id="hf-pxlz" id="f06-label" class="f06-label clip" data-start="0" data-duration="6.9" data-track-index="3">
+    <span data-hf-id="hf-bw5g" id="f06-label-text" class="f06-label-text">Lumen reads along</span>
+    <span data-hf-id="hf-3otz" id="f06-label-rule" class="f06-label-rule"></span>
+  </div>
+
+  <div data-hf-id="hf-s7x6" class="f06-dock clip" data-start="0" data-duration="6.9" data-track-index="4">
+    <span data-hf-id="hf-5u9e" class="f06-tile" style="left: 28px;"></span>
+    <span data-hf-id="hf-hjft" class="f06-tile" style="left: 98px;"></span>
+    <span data-hf-id="hf-nzb7" class="f06-tile" style="left: 168px;"></span>
+    <span data-hf-id="hf-6b6z" class="f06-tile" style="left: 238px;"></span>
+    <span data-hf-id="hf-0i3f" class="f06-tile" style="left: 308px;"></span>
+  </div>
+
+  <div data-hf-id="hf-8qen" class="f06-lumen clip" data-start="0" data-duration="6.9" data-track-index="5">
+    <img data-hf-id="hf-4z5w" id="f06-lumen-read" src="assets/lumen-read.png" alt="" />
+    <img data-hf-id="hf-ax1i" id="f06-lumen-talk" src="assets/lumen-talk.png" alt="" style="opacity: 0;" />
+    <div data-hf-id="hf-v66y" id="f06-glow" class="f06-glow"></div>
+  </div>
+  <div id="f06-bug" class="f06-bug clip" data-start="0" data-duration="6.9" data-track-index="6">
+    <img class="f06-bug-icon" src="assets/app-icon.png" alt="" />
+    <div>
+      <div class="f06-bug-name">Narrator</div>
+      <div class="f06-bug-tag">AI READING AGENT</div>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function () {
+    var q = function (sel) { return document.querySelectorAll(sel); };
+    var tl = gsap.timeline({ paused: true });
+
+    // Page card: present from frame start, a slow push underneath the whole shot
+    tl.fromTo(q("#f06-page"), { y: 14, scale: 1 }, { y: 0, scale: 1.012, duration: 6.4, ease: "sine.inOut" }, 0);
+
+    // Scene 1: "Then sit back" (0.30s) the real playback bar slides down from the top edge
+    tl.fromTo(q("#f06-bar"), { y: -200 }, { y: 0, duration: 0.75, ease: "power3.out" }, 0.3);
+
+    // Highlight sweeps (css-marker-patterns, highlight mode): scaleX 0 to 1 from the left, line by line
+    var s1 = q("#f06-s1 .f06-hl-bar");
+    var s2 = q("#f06-s2 .f06-hl-bar");
+    var s3 = q("#f06-s3 .f06-hl-bar");
+    // Scene 2: "It reads line by line" (1.19s) sentence one highlights
+    tl.fromTo(s1, { scaleX: 0 }, { scaleX: 1, duration: 1.0, ease: "power1.inOut" }, 1.19);
+    // Scene 3: "highlighting as it goes" (2.56s); sentence one drops to a faint done highlight
+    tl.to(s1, { opacity: 0.22, duration: 0.4, ease: "power2.out" }, 2.56);
+    tl.fromTo(s2, { scaleX: 0 }, { scaleX: 1, duration: 0.36, ease: "power1.inOut", stagger: 0.36 }, 2.56);
+
+    // Scene 4: sentence three sweeps (3.69s); sentence two becomes a done highlight
+    tl.to(s2, { opacity: 0.22, duration: 0.4, ease: "power2.out" }, 3.69);
+    tl.fromTo(s3, { scaleX: 0 }, { scaleX: 1, duration: 1.1, ease: "power1.inOut" }, 3.69);
+
+    // "while Lumen reads along" (4.05s) the label sets beside Lumen, then hold
+    tl.fromTo(q("#f06-label-text"), { opacity: 0, x: -14 }, { opacity: 1, x: 0, duration: 0.5, ease: "power2.out" }, 4.05);
+    tl.fromTo(q("#f06-label-rule"), { scaleX: 0 }, { scaleX: 1, duration: 0.45, ease: "power2.out" }, 4.2);
+
+    // Lip-sync + lantern pulse, timed from the word starts (deterministic, no repeat)
+    var words = [0.30, 0.60, 0.84, 1.19, 1.37, 1.73, 2.03, 2.21, 2.56, 3.34, 3.52, 3.69, 4.05, 4.41, 4.77, 5.12];
+    var talk = q("#f06-lumen-talk");
+    var read = q("#f06-lumen-read");
+    var glow = q("#f06-glow");
+    var RISE = 0.06;
+    var BRIGHT_AT = 3.69;
+    words.forEach(function (t, i) {
+      tl.set(talk, { opacity: 1 }, t);
+      tl.set(read, { opacity: 0 }, t);
+      tl.set(talk, { opacity: 0 }, t + 0.12);
+      tl.set(read, { opacity: 1 }, t + 0.12);
+
+      var bright = t >= BRIGHT_AT;
+      var base = bright ? 0.38 : 0.2;
+      var prevBase = (i > 0 && words[i - 1] >= BRIGHT_AT) ? 0.38 : 0.2;
+      var peak = bright ? 1 : 0.72;
+      var peakScale = bright ? 1.4 : 1.25;
+      var next = i < words.length - 1 ? words[i + 1] : 6.4;
+      var decay = Math.min(0.34, next - t - RISE);
+      tl.fromTo(glow, { opacity: prevBase, scale: 1 }, { opacity: peak, scale: peakScale, duration: RISE, ease: "power2.out", immediateRender: false }, t);
+      tl.fromTo(glow, { opacity: peak, scale: peakScale }, { opacity: base, scale: 1, duration: decay, ease: "power2.out", immediateRender: false }, t + RISE);
+    });
+
+    // full-span anchor so the timeline covers the whole frame
+    tl.to({}, { duration: 6.4 }, 0);
+
+    window.__timelines = window.__timelines || {};
+    window.__timelines["06-reading"] = tl;
+  })();
+</script>
+</template>

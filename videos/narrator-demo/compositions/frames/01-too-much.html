@@ -1,0 +1,302 @@
+<template id="01-too-much-template">
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+
+  <style>
+@font-face { font-family: "Instrument Serif"; font-style: normal; font-weight: 400; src: url("assets/fonts/InstrumentSerif.ttf") format("truetype"); font-display: block; }
+@font-face { font-family: "Instrument Serif"; font-style: italic; font-weight: 400; src: url("assets/fonts/InstrumentSerif-Italic.woff2") format("woff2"); font-display: block; }
+@font-face { font-family: "Archivo"; font-style: normal; font-weight: 100 900; src: url("assets/fonts/Archivo.ttf") format("truetype"); font-display: block; }
+    #root {
+      position: absolute;
+      inset: 0;
+      width: 1920px;
+      height: 1080px;
+      overflow: hidden;
+      container-type: size;
+      color: #121214;
+    }
+
+    /* ground: paper + sun bloom behind center + ember counter-bloom top-right */
+    [id="01-too-much-ground"] {
+      position: absolute;
+      inset: 0;
+      background: #F7F3EA;
+      z-index: 0;
+    }
+    [id="01-too-much-bloom"] {
+      position: absolute;
+      width: 1300px;
+      height: 1000px;
+      left: calc(50% - 650px);
+      top: calc(43% - 500px);
+      background: radial-gradient(
+        closest-side,
+        rgba(255, 199, 41, 0.6) 0%,
+        rgba(255, 227, 148, 0.5) 40%,
+        rgba(255, 217, 109, 0.2) 70%,
+        rgba(247, 243, 234, 0) 100%
+      );
+    }
+    [id="01-too-much-ember"] {
+      position: absolute;
+      width: 900px;
+      height: 900px;
+      left: 1380px;
+      top: -400px;
+      background: radial-gradient(
+        closest-side,
+        rgba(185, 168, 214, 0.2) 0%,
+        rgba(185, 168, 214, 0.08) 55%,
+        rgba(185, 168, 214, 0) 100%
+      );
+    }
+
+    /* the wall of text: three columns of generic paragraph bars */
+    [id="01-too-much-cols"] {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+    }
+    [id="01-too-much-world"] {
+      position: absolute;
+      inset: 0;
+      transform-origin: 50% 45%;
+    }
+    [class~="01-too-much-col"] {
+      --dof: 0px;
+      position: absolute;
+      top: 96px;
+      width: 470px;
+      height: 744px;
+      filter: blur(var(--dof));
+      will-change: filter;
+    }
+    [id="01-too-much-col-0"] { left: 165px; }
+    [id="01-too-much-col-1"] { left: 725px; }
+    [id="01-too-much-col-2"] { left: 1285px; }
+    [class~="01-too-much-bar"] {
+      position: absolute;
+      left: 0;
+      height: 12px;
+      background: rgba(18, 18, 20, 0.13);
+    }
+    [class~="01-too-much-bar-head"] {
+      height: 24px;
+      background: rgba(18, 18, 20, 0.16);
+    }
+
+    /* the headline: one line swaps for the other in place */
+    [id="01-too-much-head"] {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 300px;
+      height: 340px;
+      z-index: 2;
+    }
+    [class~="01-too-much-line"] {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      white-space: nowrap;
+      font-family: "Instrument Serif", serif;
+      font-weight: 400;
+      font-size: 7.2cqw;
+      line-height: 1.04;
+      letter-spacing: -0.01em;
+      color: #121214;
+    }
+    [id="01-too-much-line-a"] {
+      flex-direction: column;
+      font-size: 5.6cqw;
+      line-height: 1.1;
+    }
+    [class~="01-too-much-row"] {
+      display: block;
+    }
+    [class~="01-too-much-word"] {
+      display: inline-block;
+      transform-origin: 50% 80%;
+    }
+    [class~="01-too-much-mark"] {
+      position: relative;
+      display: inline-block;
+      font-style: italic;
+    }
+    [id="01-too-much-mark-bar"] {
+      position: absolute;
+      left: -0.06em;
+      right: -0.06em;
+      top: 0.56em;
+      bottom: 0.06em;
+      background: #FFC729;
+      transform-origin: left center;
+      z-index: 0;
+    }
+    [class~="01-too-much-mark-text"] {
+      position: relative;
+      z-index: 1;
+    }
+
+    [id="01-too-much-pagenum"] {
+      position: absolute;
+      right: 76px;
+      top: 846px;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 13px;
+      letter-spacing: 0.08em;
+      color: rgba(18, 18, 20, 0.75);
+      z-index: 3;
+    }
+  </style>
+
+  <div data-hf-id="hf-yp39"
+    id="root"
+    data-composition-id="01-too-much"
+    data-start="0"
+    data-duration="5.64"
+    data-width="1920"
+    data-height="1080"
+  >
+    <div data-hf-id="hf-47i4" id="01-too-much-ground" class="clip" data-start="0" data-duration="5.64" data-track-index="0">
+      <div data-hf-id="hf-7ulj" id="01-too-much-bloom"></div>
+      <div data-hf-id="hf-xexv" id="01-too-much-ember"></div>
+    </div>
+
+    <div data-hf-id="hf-bzvd" id="01-too-much-cols" class="clip" data-start="0" data-duration="5.64" data-track-index="1">
+      <div data-hf-id="hf-xoma" id="01-too-much-world">
+        <div data-hf-id="hf-fz18" id="01-too-much-col-0" class="01-too-much-col" data-depth="2"></div>
+        <div data-hf-id="hf-xc8u" id="01-too-much-col-1" class="01-too-much-col" data-depth="3"></div>
+        <div data-hf-id="hf-ebsf" id="01-too-much-col-2" class="01-too-much-col" data-depth="1"></div>
+      </div>
+    </div>
+
+    <div data-hf-id="hf-hy0p" id="01-too-much-head" class="clip" data-start="0" data-duration="5.64" data-track-index="2">
+      <div data-hf-id="hf-75qo" id="01-too-much-line-a" class="01-too-much-line">
+        <div class="01-too-much-row"><span data-hf-id="hf-juhg" id="01-too-much-w0" class="01-too-much-word">Too</span>&nbsp;<span data-hf-id="hf-j2pe" id="01-too-much-w1" class="01-too-much-word">much</span>&nbsp;<span data-hf-id="hf-qf99" id="01-too-much-w2" class="01-too-much-word">to</span>&nbsp;<span data-hf-id="hf-pun1" id="01-too-much-w3" class="01-too-much-word">read,</span></div>
+        <div class="01-too-much-row"><span data-hf-id="hf-r3fz" id="01-too-much-w4" class="01-too-much-word">and</span>&nbsp;<span id="01-too-much-w5" class="01-too-much-word">zero</span>&nbsp;<span id="01-too-much-w6" class="01-too-much-word">energy</span>&nbsp;<span id="01-too-much-w7" class="01-too-much-word">to</span>&nbsp;<span id="01-too-much-w8" class="01-too-much-word">read</span>&nbsp;<span id="01-too-much-w9" class="01-too-much-word">it?</span></div>
+      </div>
+      <div data-hf-id="hf-k5tb" id="01-too-much-line-b" class="01-too-much-line">Don't. Just&nbsp;<span data-hf-id="hf-qtnt" class="01-too-much-mark"><span data-hf-id="hf-nx0y" id="01-too-much-mark-bar"></span><span data-hf-id="hf-qi6f" class="01-too-much-mark-text">listen.</span></span></div>
+    </div>
+
+    <div data-hf-id="hf-51ma" id="01-too-much-pagenum" class="clip" data-start="0" data-duration="5.64" data-track-index="3">01</div>
+  </div>
+
+  <script>
+    (function () {
+      var ID = "01-too-much";
+      var DURATION = 5.24;
+      var $ = function (s) { return document.getElementById(ID + "-" + s); };
+
+      // ---- build the wall of text (generic bars, no words), deterministic widths ----
+      var LINE_PITCH = 38;
+      var LINES = 18;
+      var cols = [$("col-0"), $("col-1"), $("col-2")];
+      var colBars = cols.map(function (col, c) {
+        var bars = [];
+        var head = document.createElement("div");
+        head.className = ID + "-bar " + ID + "-bar-head";
+        head.style.top = "0px";
+        head.style.width = (48 + c * 9) + "%";
+        col.appendChild(head);
+        bars.push(head);
+        for (var i = 0; i < LINES; i++) {
+          var bar = document.createElement("div");
+          bar.className = ID + "-bar";
+          var paraEnd = (i + c * 2) % 6 === 5;
+          var w = paraEnd ? 30 + ((i * 13 + c * 7) % 22) : 78 + ((i * 37 + c * 23) % 22);
+          bar.style.top = (60 + i * LINE_PITCH) + "px";
+          bar.style.width = w + "%";
+          col.appendChild(bar);
+          bars.push(bar);
+        }
+        return bars;
+      });
+
+      window.__timelines = window.__timelines || {};
+      var tl = gsap.timeline({ paused: true });
+
+      // ---- VO cues (assets/voice/01.wav word timings) ----
+      var T_SWAP = 3.23;    // "Don't."
+      var T_MARK = 3.96;    // "listen."
+      var CLEAR_START = 3.08;
+
+      // ---- ground: bloom settles in, then swells on the relief line ----
+      tl.fromTo($("bloom"), { scale: 0.9, opacity: 0.75 }, { scale: 1, opacity: 1, duration: 3.0, ease: "sine.out" }, 0);
+      tl.to($("bloom"), { scale: 1.12, duration: 1.0, ease: "power2.out" }, T_SWAP);
+
+      // ---- Scene 1: text piles up, column by column, line by line ----
+      var COL_OFFSET = [0.0, 0.18, 0.36];
+      colBars.forEach(function (bars, c) {
+        tl.fromTo(bars, { opacity: 0, y: 28 }, {
+          opacity: 1, y: 0, duration: 0.35, ease: "power2.out", stagger: 0.1
+        }, 0.02 + COL_OFFSET[c]);
+      });
+
+      // slow upward drift + push on the wall (camera under the shot)
+      tl.fromTo($("world"), { y: 40, scale: 1 }, { y: -50, scale: 1.08, duration: 3.4, ease: "none" }, 0);
+
+      // depth-of-field: focal pull, far planes blur more, all dim; headline stays sharp
+      var BLUR_PER_DEPTH = 4;
+      var DIM_LEVEL = 0.65;
+      cols.forEach(function (col) {
+        var depth = Number(col.getAttribute("data-depth")) || 1;
+        tl.fromTo(col, { "--dof": "0px", opacity: 1 }, {
+          "--dof": (BLUR_PER_DEPTH * depth) + "px", opacity: DIM_LEVEL, duration: 2.0, ease: "power2.inOut"
+        }, 0.4);
+      });
+
+      // ---- headline assembles word by word on the VO (pre-computed sequence) ----
+      var CONTENT = [
+        { el: $("w0"), cue: 0.45 },  // Too
+        { el: $("w1"), cue: 0.69 },  // much
+        { el: $("w2"), cue: 0.99 },  // to
+        { el: $("w3"), cue: 1.18 },  // read,
+        { el: $("w4"), cue: 1.54 },  // and
+        { el: $("w5"), cue: 1.78 },  // zero
+        { el: $("w6"), cue: 2.08 },  // energy
+        { el: $("w7"), cue: 2.50 },  // to
+        { el: $("w8"), cue: 2.69 },  // read
+        { el: $("w9"), cue: 2.99 }   // it?
+      ];
+      var TIMELINE = CONTENT.map(function (entry, i) {
+        var next = CONTENT[i + 1];
+        return { el: entry.el, start: entry.cue, end: next ? next.cue : T_SWAP };
+      });
+      gsap.set(TIMELINE.map(function (e) { return e.el; }), { visibility: "hidden" });
+      TIMELINE.forEach(function (entry) {
+        tl.set(entry.el, { visibility: "visible" }, entry.start);
+        tl.fromTo(entry.el, { yPercent: 22, scale: 1.14 }, {
+          yPercent: 0, scale: 1, duration: 0.24, ease: "power3.out"
+        }, entry.start);
+      });
+
+      // ---- Scene 3: discrete hard cut, same position, no in-between ----
+      var SEQUENCE = [
+        { t: 0, show: $("line-a"), hide: $("line-b") },
+        { t: T_SWAP, show: $("line-b"), hide: $("line-a") }
+      ];
+      // opacity, not visibility: the words inside line A set their own visibility,
+      // which would override a hidden parent
+      gsap.set($("line-b"), { opacity: 0 });
+      SEQUENCE.forEach(function (s) {
+        tl.set(s.show, { opacity: 1 }, s.t);
+        tl.set(s.hide, { opacity: 0 }, s.t);
+      });
+      tl.fromTo($("line-b"), { scale: 1.05 }, { scale: 1, duration: 0.3, ease: "power3.out" }, T_SWAP);
+
+      // background text clears: blur out + fade
+      cols.forEach(function (col, i) {
+        tl.to(col, { "--dof": "22px", opacity: 0, duration: 0.6, ease: "power2.in" }, CLEAR_START + i * 0.05);
+      });
+
+      // sun marker sweeps under "listen." as the VO says it, then everything holds
+      tl.fromTo($("mark-bar"), { scaleX: 0 }, { scaleX: 1, duration: 0.5, ease: "power2.out" }, T_MARK);
+
+      // span the full frame window
+      tl.to({}, { duration: DURATION }, 0);
+      window.__timelines["01-too-much"] = tl;
+    })();
+  </script>
+</template>

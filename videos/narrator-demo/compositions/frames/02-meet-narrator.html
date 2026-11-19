@@ -1,0 +1,272 @@
+<template id="02-meet-narrator-template" data-composition-id="02-meet-narrator" data-width="1920" data-height="1080" data-duration="8.21">
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+<style>
+@font-face { font-family: "Instrument Serif"; font-style: normal; font-weight: 400; src: url("assets/fonts/InstrumentSerif.ttf") format("truetype"); font-display: block; }
+@font-face { font-family: "Instrument Serif"; font-style: italic; font-weight: 400; src: url("assets/fonts/InstrumentSerif-Italic.woff2") format("woff2"); font-display: block; }
+@font-face { font-family: "Archivo"; font-style: normal; font-weight: 100 900; src: url("assets/fonts/Archivo.ttf") format("truetype"); font-display: block; }
+
+  #root {
+    position: absolute;
+    inset: 0;
+    width: 1920px;
+    height: 1080px;
+    overflow: hidden;
+  }
+
+  /* full-bleed ground: parchment + subordinate ember counter-bloom (top-right) */
+  .mn-02-ground {
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(circle at 88% 10%, rgba(185, 168, 214, 0.2) 0%, rgba(185, 168, 214, 0.08) 22%, rgba(185, 168, 214, 0) 40%),
+      #F7F3EA;
+  }
+
+  .mn-02-stage {
+    position: absolute;
+    inset: 0;
+    container-type: size;
+    color: #121214;
+  }
+
+  /* sun bloom behind the icon: swells in under the icon's settle */
+  .mn-02-bloom {
+    position: absolute;
+    left: -260px;
+    top: -320px;
+    width: 1360px;
+    height: 1360px;
+    z-index: 1;
+    background: radial-gradient(circle at 50% 50%, #FFC729 0%, #FFC729 14%, #FFE394 34%, rgba(255, 217, 109, 0.45) 52%, rgba(247, 243, 234, 0) 70%);
+    transform-origin: 50% 50%;
+  }
+
+  /* lockup: the icon's visible square spans the wordmark cap top to the descriptor underline */
+  .mn-02-icon {
+    position: absolute;
+    left: 158px;
+    top: 144px;
+    width: 390px;
+    height: 390px;
+    z-index: 2;
+    transform-origin: 50% 50%;
+  }
+
+  .mn-02-wordmark {
+    position: absolute;
+    left: 576px;
+    top: 150px;
+    z-index: 2;
+    display: flex;
+    font-family: "Instrument Serif", serif;
+    font-weight: 400;
+    font-size: 14.6cqw;
+    line-height: 0.86;
+    letter-spacing: -0.018em;
+    white-space: nowrap;
+  }
+  .mn-02-mask {
+    display: inline-block;
+    overflow: hidden;
+    padding: 0.06em 0 0.1em;
+  }
+  .mn-02-ch {
+    display: inline-block;
+  }
+
+  /* descriptor: tracked Archivo micro-label set under the wordmark */
+  .mn-02-desc {
+    position: absolute;
+    left: 592px;
+    top: 452px;
+    z-index: 2;
+    display: flex;
+    gap: 0.62em;
+    font-family: "Archivo", sans-serif;
+    font-weight: 600;
+    font-size: 1.6cqw;
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+    line-height: 1;
+    white-space: nowrap;
+  }
+  .mn-02-dmask {
+    display: inline-block;
+    overflow: hidden;
+    padding: 0.12em 0 0.6em;
+  }
+  .mn-02-dw {
+    display: inline-block;
+    position: relative;
+  }
+  /* short sun underline under AGENT (trailing tracking trimmed off the right) */
+  .mn-02-ul {
+    position: absolute;
+    left: 0;
+    right: 0.32em;
+    bottom: -0.42em;
+    height: 7px;
+    background: #FFC729;
+    transform-origin: 0% 50%;
+  }
+
+  .mn-02-line {
+    position: absolute;
+    left: 592px;
+    top: 560px;
+    z-index: 2;
+    font-family: "Archivo", sans-serif;
+    font-weight: 400;
+    font-size: 2.15cqw;
+    line-height: 1.3;
+    white-space: nowrap;
+  }
+  .mn-02-w {
+    display: inline-block;
+    margin-right: 0.26em;
+  }
+
+  .mn-02-chips {
+    position: absolute;
+    left: 592px;
+    top: 660px;
+    z-index: 2;
+    display: flex;
+    gap: 20px;
+  }
+  .mn-02-chip {
+    display: inline-block;
+    transform-origin: 50% 50%;
+  }
+  .mn-02-chip-in {
+    display: inline-block;
+    padding: 16px 30px 15px;
+    border: 1px solid #121214;
+    border-radius: 0;
+    background: rgba(255, 199, 41, 0);
+    font-family: "Archivo", sans-serif;
+    font-weight: 600;
+    font-size: 1.45cqw;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    line-height: 1;
+    transform-origin: 50% 50%;
+  }
+
+  .mn-02-pagenum {
+    position: absolute;
+    right: 77px;
+    top: 840px;
+    z-index: 2;
+    font-family: "Archivo", sans-serif;
+    font-size: 13px;
+    letter-spacing: 0.08em;
+    font-variant-numeric: tabular-nums;
+    opacity: 0.75;
+  }
+</style>
+
+<div data-hf-id="hf-8c3w"
+  id="root"
+  data-composition-id="02-meet-narrator"
+  data-start="0"
+  data-duration="8.21"
+  data-width="1920"
+  data-height="1080"
+>
+  <div data-hf-id="hf-1x8d" class="mn-02-ground clip" data-start="0" data-duration="8.21" data-track-index="0"></div>
+
+  <div data-hf-id="hf-hfu9" class="mn-02-stage clip" data-start="0" data-duration="8.21" data-track-index="1">
+    <div data-hf-id="hf-sbay" class="mn-02-bloom" id="mn-02-bloom"></div>
+    <img data-hf-id="hf-d2om" class="mn-02-icon" id="mn-02-icon" src="assets/app-icon.png" alt="Narrator app icon" />
+
+    <div data-hf-id="hf-m92q" class="mn-02-wordmark" id="mn-02-wordmark">
+      <span data-hf-id="hf-m9yo" class="mn-02-mask"><span data-hf-id="hf-2lpx" class="mn-02-ch">N</span></span>
+      <span data-hf-id="hf-qaiw" class="mn-02-mask"><span data-hf-id="hf-phm0" class="mn-02-ch">a</span></span>
+      <span data-hf-id="hf-p3lt" class="mn-02-mask"><span data-hf-id="hf-unld" class="mn-02-ch">r</span></span>
+      <span data-hf-id="hf-phwu" class="mn-02-mask"><span data-hf-id="hf-bbad" class="mn-02-ch">r</span></span>
+      <span data-hf-id="hf-oazr" class="mn-02-mask"><span data-hf-id="hf-9ilc" class="mn-02-ch">a</span></span>
+      <span data-hf-id="hf-opas" class="mn-02-mask"><span data-hf-id="hf-tuzb" class="mn-02-ch">t</span></span>
+      <span data-hf-id="hf-nidp" class="mn-02-mask"><span data-hf-id="hf-qa82" class="mn-02-ch">o</span></span>
+      <span data-hf-id="hf-nwoq" class="mn-02-mask"><span data-hf-id="hf-ci7g" class="mn-02-ch">r</span></span>
+    </div>
+
+    <div data-hf-id="hf-td3i" class="mn-02-desc" id="mn-02-desc">
+      <span class="mn-02-dmask"><span class="mn-02-dw" data-at="1.6">AI</span></span>
+      <span class="mn-02-dmask"><span class="mn-02-dw" data-at="1.8">Reading</span></span>
+      <span class="mn-02-dmask"><span class="mn-02-dw" data-at="2.0">Agent<span class="mn-02-ul" id="mn-02-ul"></span></span></span>
+    </div>
+
+    <div data-hf-id="hf-rs0m" class="mn-02-line" id="mn-02-line">
+      <span data-hf-id="hf-lbw6" class="mn-02-w" data-at="3.45">Reads</span><span data-hf-id="hf-lz5d" class="mn-02-w" data-at="3.73">anything</span><span data-hf-id="hf-wm0j" class="mn-02-w" data-at="4.15">on</span><span data-hf-id="hf-ifpt" class="mn-02-w" data-at="4.29">your</span><span data-hf-id="hf-f6ab" class="mn-02-w" data-at="4.52">Mac</span><span data-hf-id="hf-qf0k" class="mn-02-w" data-at="4.71">out</span><span data-hf-id="hf-thtn" class="mn-02-w" data-at="4.9">loud.</span>
+    </div>
+
+    <div data-hf-id="hf-si2a" class="mn-02-chips" id="mn-02-chips">
+      <span data-hf-id="hf-dq2m" class="mn-02-chip"><span data-hf-id="hf-w1dc" class="mn-02-chip-in">Reads anything</span></span>
+      <span data-hf-id="hf-05k2" class="mn-02-chip"><span data-hf-id="hf-d648" class="mn-02-chip-in" data-word="human">Sounds human</span></span>
+      <span data-hf-id="hf-0jv3" class="mn-02-chip"><span data-hf-id="hf-cyym" class="mn-02-chip-in">Runs on your Mac</span></span>
+    </div>
+
+    <div data-hf-id="hf-zmm5" class="mn-02-pagenum">02 / 08</div>
+  </div>
+</div>
+
+<script>
+  (function () {
+    window.__timelines = window.__timelines || {};
+    var tl = gsap.timeline({ paused: true });
+
+    // Scene 1 (0.0 to 1.3s): icon lands with a smooth settle on the music lift; sun bloom swells behind it.
+    tl.fromTo("#mn-02-icon",
+      { scale: 0.6, opacity: 0, y: 30 },
+      { scale: 1, opacity: 1, y: 0, duration: 0.7, ease: "power3.out" }, 0);
+    tl.fromTo("#mn-02-bloom",
+      { opacity: 0, scale: 0.78 },
+      { opacity: 0.5, scale: 1, duration: 1.1, ease: "power2.out" }, 0);
+
+    // Wordmark rises letter by letter out of its masks on "Narrator" (0.59s).
+    gsap.utils.toArray("#mn-02-wordmark .mn-02-ch").forEach(function (el, i) {
+      tl.fromTo(el,
+        { yPercent: 105, opacity: 0 },
+        { yPercent: 0, opacity: 1, duration: 0.6, ease: "power3.out" }, 0.55 + i * 0.045);
+    });
+
+    // Scene 2 (1.3 to 3.3s): descriptor sets word by word on "AI reading agent", then the sun underline draws on "agent" (2.34s).
+    gsap.utils.toArray("#mn-02-desc .mn-02-dw").forEach(function (el) {
+      tl.fromTo(el,
+        { yPercent: 110, opacity: 0 },
+        { yPercent: 0, opacity: 1, duration: 0.5, ease: "power3.out" }, parseFloat(el.dataset.at));
+    });
+    tl.fromTo("#mn-02-ul",
+      { scaleX: 0 },
+      { scaleX: 1, duration: 0.55, ease: "power3.inOut" }, 2.34);
+
+    // Scene 3 (3.3 to 5.5s): body line sets word by word on the VO.
+    gsap.utils.toArray("#mn-02-line .mn-02-w").forEach(function (el) {
+      tl.fromTo(el,
+        { opacity: 0, y: 18 },
+        { opacity: 1, y: 0, duration: 0.45, ease: "power3.out" }, parseFloat(el.dataset.at));
+    });
+
+    // Scene 4 (5.5 to 7.71s): three chips land in sequence from "in a voice" (5.5s).
+    gsap.utils.toArray("#mn-02-chips .mn-02-chip").forEach(function (el, i) {
+      tl.fromTo(el,
+        { scale: 0.9, opacity: 0, y: 24 },
+        { scale: 1, opacity: 1, y: 0, duration: 0.55, ease: "power3.out" }, 5.5 + i * 0.2);
+    });
+
+    // asr-keyword-glow on "Sounds human" at "sounds human" (6.28s): attack 0.2s, sustain, release 0.3s to a 0.3 rest tint.
+    // Plain tweens (not an onUpdate driver) so the envelope renders under frame-by-frame seek.
+    var hum = document.querySelector('#mn-02-chips [data-word="human"]');
+    tl.fromTo(hum,
+      { backgroundColor: "rgba(255, 199, 41, 0)", scale: 1 },
+      { backgroundColor: "rgba(255, 199, 41, 1)", scale: 1.08, duration: 0.2, ease: "none" }, 6.28);
+    tl.to(hum,
+      { backgroundColor: "rgba(255, 199, 41, 0.3)", scale: 1.024, duration: 0.3, ease: "none" }, 6.95);
+
+    // Hold to 7.71s: the lockup sits still.
+    tl.set({}, {}, 7.71);
+    window.__timelines["02-meet-narrator"] = tl;
+  })();
+</script>
+</template>

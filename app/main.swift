@@ -1491,6 +1491,7 @@ final class Pet: NSObject {
             "Option + Shift + 4 is our secret handshake. It picks something to read.",
             "Got a question about your screen? Press Option + Shift + A and ask away.",
             "You can pick me up and drop me. I always flutter back.",
+            "Read more. Without reading. Click me and I'll show you.",
             "I read by lantern light. Your screen counts.",
             "Click me for a story. Or an email. I'm not fussy.",
         ],
@@ -1903,6 +1904,9 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         item.button?.image = NSImage(systemSymbolName: "waveform", accessibilityDescription: "Narrator")
         let menu = NSMenu()
+        let brand = menu.addItem(withTitle: "Narrator, your AI reading agent", action: nil, keyEquivalent: "")
+        brand.isEnabled = false
+        menu.addItem(.separator())
         menu.addItem(withTitle: "Select an area to read", action: #selector(beginSelection), keyEquivalent: "")
         menu.addItem(withTitle: "Play or pause", action: #selector(togglePause), keyEquivalent: "")
         menu.addItem(withTitle: "Stop reading", action: #selector(stopReading), keyEquivalent: "")
@@ -2041,7 +2045,7 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
         onboarding = true
         pet.show(swooping: true)
         pet.mood = .happy
-        pet.say("Hi, I'm Lumen. I read anything on your screen out loud, and I can answer questions about it.", actions: [
+        pet.say("Hi, I'm Lumen, the face of Narrator, your AI reading agent. Point me at anything on your screen and I'll read it to you.", actions: [
             ("Show me", { [weak self] in self?.continueSetup() }),
             ("Later", { [weak self] in self?.finishSetup() }),
         ])
@@ -2049,7 +2053,7 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
             await self?.speech.waitUntilReady()
             guard let self, self.onboarding, self.narration == nil, !self.isAskBusy else { return }
             self.pet.mood = .talking
-            await self.say("Hi, I'm Lumen. I read anything on your screen out loud.")
+            await self.say("Hi, I'm Lumen. Read more, without reading. Point me at anything and I'll read it to you.")
             if self.pet.mood == .talking { self.pet.mood = .happy }
         }
     }
@@ -3514,7 +3518,7 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
             lumen.dots = pose == "think" ? 2 : 0
             save(lumen, "lumen-\(pose)")
         }
-        save(Pet.bubbleContent("Hi, I'm Lumen. I read anything on your screen out loud, and I can answer questions about it.", buttons: ["Show me", "Later"], target: nil, action: nil), "lumen-bubble")
+        save(Pet.bubbleContent("Hi, I'm Lumen, the face of Narrator, your AI reading agent. Point me at anything on your screen and I'll read it to you.", buttons: ["Show me", "Later"], target: nil, action: nil), "lumen-bubble")
         let overlay = SelectionView(frame: NSRect(x: 0, y: 0, width: 1200, height: 700))
         overlay.hover = NSRect(x: 260, y: 120, width: 680, height: 430)
         save(overlay, "selector")
