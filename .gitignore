@@ -1,0 +1,8 @@
+.signing/
+Narrator.app/
+dist/
+envs/
+models/
+samples/
+narrator.log
+.DS_Store

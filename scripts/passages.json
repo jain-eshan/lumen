@@ -1,0 +1,34 @@
+{
+  "case": {
+    "text": "Meridian Foods had reached a difficult point. Revenue grew from 120 million dollars in 2023 to 148 million in 2024, yet operating margin fell from 14 percent to 9 percent. The chief executive, Anita Rao, believed the new cold chain network would pay for itself within three years. Her finance team was less certain. Before the board meeting on Thursday, she had to decide whether to expand into two more regions, or to pause and repair the margin first.",
+    "kitten_lines": [
+      "[contemplative] Meridian Foods had reached a difficult point.",
+      "[mundane] Revenue grew from 120 million dollars in 2023 to 148 million in 2024, yet operating margin fell from 14 percent to 9 percent.",
+      "[mundane] The chief executive, Anita Rao, believed the new cold chain network would pay for itself within three years.",
+      "[nervous] Her finance team was less certain.",
+      "[contemplative] Before the board meeting on Thursday, she had to decide whether to expand into two more regions, or to (((pause))) and repair the margin first."
+    ]
+  },
+  "news": {
+    "text": "The city council of Harbour Vale approved a new flood defence plan on Tuesday, ending eight months of debate. The project will cost 42 million dollars and raise the river wall by nearly two metres. Supporters say it will protect more than 6,000 homes. Critics argue that the money should go to drainage first. Construction is expected to begin in March, and the council will publish a full timetable next week.",
+    "kitten_lines": [
+      "[mundane] The city council of Harbour Vale approved a new flood defence plan on Tuesday, ending eight months of debate.",
+      "[mundane] The project will cost 42 million dollars and raise the river wall by nearly two metres.",
+      "[mundane] Supporters say it will protect more than 6,000 homes.",
+      "[stern] Critics argue that the money should go to drainage first.",
+      "[mundane] Construction is expected to begin in March, and the council will publish a full timetable next week."
+    ]
+  },
+  "novel": {
+    "text": "The letter had waited in the drawer for eleven years. Mira turned it over in her hands, and the old paper whispered against her fingers. Outside, the rain had finally stopped. \"You never told me,\" she said quietly. Her brother did not look up. For a long moment, the only sound was the clock above the stove. Then he sighed, and pushed the chair back from the table. \"I never could,\" he said. \"Not to you.\"",
+    "kitten_lines": [
+      "[contemplative] The letter had waited in the drawer for eleven years.",
+      "[tender] Mira turned it over in her hands, and the old paper whispered against her fingers.",
+      "[contemplative] Outside, the rain had finally stopped.",
+      "[sad] \"You (((never))) told me,\" she said quietly.",
+      "[contemplative] Her brother did not look up. For a long moment, the only sound was the clock above the stove.",
+      "[sad] <sigh> Then he sighed, and pushed the chair back from the table.",
+      "[tender] \"I never could,\" he said. <pause> \"Not to (((you))).\""
+    ]
+  }
+}
