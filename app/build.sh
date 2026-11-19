@@ -31,7 +31,10 @@ PLIST
 security unlock-keychain -p "$(cat "$SIGNING/keychain-password")" "$SIGNING/narrator.keychain-db"
 sign() { codesign --force --sign "$(cat "$SIGNING/identity")" --keychain "$SIGNING/narrator.keychain-db" "$@"; }
 
-if [[ ! -f "$RES/AppIcon.icns" ]]; then
+# Lumen's poses, made by art/cutout.swift from the generated pose sheet.
+rm -rf "$RES/lumen" && cp -R "$APP_SRC/lumen" "$RES/lumen"
+
+if [[ ! -f "$RES/AppIcon.icns" || "$APP_SRC/lumen/read.png" -nt "$RES/AppIcon.icns" ]]; then
   ICONS=$(mktemp -d)
   "$BUNDLE/Contents/MacOS/Narrator" --render-icon="$ICONS/icon.png"
   mkdir "$ICONS/AppIcon.iconset"

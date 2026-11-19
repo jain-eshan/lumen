@@ -10,15 +10,16 @@ Needs an Apple silicon Mac on macOS 14 or later.
 
 Download `Narrator.dmg` from the [latest release](https://github.com/jain-eshan/narrator/releases/latest), open it, and drag Narrator to Applications. The app is self-signed, so the first time, right-click it and choose Open. The file is about 900 MB because the voice engine and model are inside, so it works offline.
 
-On first launch Nox, the owl, asks for Screen Recording and Accessibility permission and walks you through it. Narrator only looks at the area you select.
+On first launch Lumen, a small moth librarian, flutters down onto your Dock, says hello, and walks you through the Screen Recording and Accessibility permissions. Narrator only looks at the area you select.
 
 ## What it does
 
 - Select an area, say what it's for, and it reads it with a mood that fits (Calm, Warm, Serious, News, Story, or Auto).
+- Pick a voice in the same box: a woman or a man, with an American or British accent, or Auto to match what you're reading. Click a voice to hear a sample first.
 - Follow mode keeps reading new text as it appears, so a Claude chat is read as it streams in.
 - Jump lets you click any sentence and continue from there.
 - Ask answers spoken or typed questions about what's on screen. Spoken questions work through Wispr Flow if you have it, or you can type. Ask needs the `claude` command installed.
-- Nox lives by the notch, walks to the line being read, and reacts to what Narrator is doing. Turn it off from the menu bar.
+- Lumen lives on top of your Dock. It wanders and reads to itself, flies over to the icon of the app you're reading and sits there, and its mouth and lantern follow the voice. It cups its antennae while you ask a question, thinks while Claude works, and falls asleep after a few quiet minutes. Hover over it for a tip, and click it to start or pause reading. You can also pick it up and drop it, and it steps aside when your pointer is over the Dock below it. Turn it off from the menu bar. With Reduce Motion on, it stays put.
 
 ## Shortcuts
 
@@ -53,10 +54,23 @@ zsh app/package.sh         # optional: makes dist/Narrator.dmg to share
 
 These steps have not been tried on a clean machine yet. If one fails, please open an issue.
 
+## Lumen's art
+
+Lumen's ten poses (reading, reading aloud, two walking steps, flying, waving, listening, thinking, celebrating, asleep) live in `app/lumen/` as transparent PNGs. They were made from one generated pose sheet, `art/lumen-sheet.png`, which was generated with an image model using `art/lumen-concept.jpg` as the character reference. `art/cutout.swift` uses Apple's Vision to cut each pose out, put them all on one canvas at one scale with the feet on the bottom edge, and clean the white edges:
+
+```bash
+swiftc -O art/cutout.swift -o /tmp/cutout
+/tmp/cutout art/lumen-sheet.png app/lumen read talk walk1 walk2 fly wave listen think cheer sleep
+```
+
+The app finds the lantern in each pose by itself, so a new sheet needs no measuring. Keep the same ten poses in the same order.
+
 ## Layout
 
 - `app/main.swift`: the whole app
 - `app/build.sh`, `app/package.sh`: build and disk image
+- `app/lumen/`: Lumen's poses, bundled into the app
+- `art/`: Lumen's concept, pose sheet and the cut-out tool
 - `scripts/kokoro_server.py`: the speech service the app starts
 - `scripts/`: the other files are voice experiments from early development
 - `requirements.txt`: the pinned Python packages
