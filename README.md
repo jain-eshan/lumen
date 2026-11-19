@@ -18,7 +18,7 @@ On first launch Lumen, a small moth librarian, flutters down onto your Dock, say
 - Pick a voice in the same box: a woman or a man, with an American or British accent, or Auto to match what you're reading. Click a voice to hear a sample first.
 - Follow mode keeps reading new text as it appears, so a Claude chat is read as it streams in.
 - Jump lets you click any sentence and continue from there.
-- Ask answers spoken or typed questions about what's on screen. Spoken questions work through Wispr Flow if you have it, or you can type. Ask needs the `claude` command installed.
+- Ask answers questions about what's on screen. Type your question, or dictate it with any dictation app you already use, then press Return. Ask needs the `claude` command installed.
 - Lumen lives on top of your Dock. It wanders and reads to itself, flies over to the icon of the app you're reading and sits there, and its mouth and lantern follow the voice. It cups its antennae while you ask a question, thinks while Claude works, and falls asleep after a few quiet minutes. Hover over it for a tip, and click it to start or pause reading. You can also pick it up and drop it, and it steps aside when your pointer is over the Dock below it. Turn it off from the menu bar. With Reduce Motion on, it stays put.
 
 ## Shortcuts
@@ -31,7 +31,7 @@ All shortcuts use Option + Shift.
 | Option + Shift + Space | Play or pause |
 | Option + Shift + , | Skip back |
 | Option + Shift + . | Skip forward |
-| Option + Shift + A | Ask a question |
+| Option + Shift + A | Ask a question. Press again to send it, or to close the box when it's empty |
 | Option + Shift + J | Jump to a sentence |
 | Esc | Cancel a selection or jump |
 

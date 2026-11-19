@@ -1,7 +1,6 @@
 import AppKit
 import AVFoundation
 import Carbon.HIToolbox
-import CoreAudio
 import NaturalLanguage
 import ScreenCaptureKit
 import Vision
@@ -629,44 +628,6 @@ struct SpokenAnswer: Decodable {
 func safeSourceURL(_ text: String) -> URL? {
     guard let url = URL(string: text), ["http", "https"].contains(url.scheme?.lowercased() ?? ""), url.host?.isEmpty == false else { return nil }
     return url
-}
-
-/// Wispr Flow pastes a whole dictation at once, while typing arrives a character at a time.
-func isDictatedInsert(from old: String, to new: String) -> Bool {
-    new.count - old.count >= 4 && new.hasPrefix(old)
-}
-
-/// Shows whether any app, such as Wispr Flow, is currently listening to the microphone.
-func microphoneInUse() -> Bool {
-    var device = AudioDeviceID(0)
-    var size = UInt32(MemoryLayout<AudioDeviceID>.size)
-    var address = AudioObjectPropertyAddress(mSelector: kAudioHardwarePropertyDefaultInputDevice, mScope: kAudioObjectPropertyScopeGlobal, mElement: kAudioObjectPropertyElementMain)
-    guard AudioObjectGetPropertyData(AudioObjectID(kAudioObjectSystemObject), &address, 0, nil, &size, &device) == noErr else { return false }
-    var running: UInt32 = 0
-    size = UInt32(MemoryLayout<UInt32>.size)
-    address.mSelector = kAudioDevicePropertyDeviceIsRunningSomewhere
-    return AudioObjectGetPropertyData(device, &address, 0, nil, &size, &running) == noErr && running != 0
-}
-
-/// Presses Wispr Flow's hands-free shortcut, Fn + Space, which both starts and finishes a dictation.
-func pressWisprHandsFreeShortcut() {
-    let source = CGEventSource(stateID: .hidSystemState)
-    func post(_ key: CGKeyCode, down: Bool, fnHeld: Bool) {
-        let event = CGEvent(keyboardEventSource: source, virtualKey: key, keyDown: down)
-        event?.flags = fnHeld ? .maskSecondaryFn : []
-        event?.post(tap: .cghidEventTap)
-        usleep(30000)
-    }
-    post(CGKeyCode(kVK_Function), down: true, fnHeld: true)
-    post(CGKeyCode(kVK_Space), down: true, fnHeld: true)
-    post(CGKeyCode(kVK_Space), down: false, fnHeld: true)
-    post(CGKeyCode(kVK_Function), down: false, fnHeld: false)
-}
-
-func pressEscapeKey() {
-    let source = CGEventSource(stateID: .hidSystemState)
-    CGEvent(keyboardEventSource: source, virtualKey: CGKeyCode(kVK_Escape), keyDown: true)?.post(tap: .cghidEventTap)
-    CGEvent(keyboardEventSource: source, virtualKey: CGKeyCode(kVK_Escape), keyDown: false)?.post(tap: .cghidEventTap)
 }
 
 /// Answers spoken questions using the screen, the conversation and read-only web access.
@@ -1537,7 +1498,7 @@ final class Pet: NSObject {
         "reading": ["Reading! Click me to pause. I'll keep my place.", "Shh, good part. Click me if you need a pause."],
         "paused": ["Click me and I'll carry on from here."],
         "thinking": ["One moment, finding the right page."],
-        "listening": ["I'm all antennae. Press Option + Shift + A when you're done."],
+        "listening": ["I'm all antennae. Type your question and press Return."],
         "jump": ["Click the sentence you want and I'll jump there."],
     ]
 
@@ -1917,12 +1878,7 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
     private var askPanel: OverlayPanel?
     private var askField: PurposeField?
     private var askHint: NSTextField?
-    private var askPoll: Timer?
     private var askReturnApp: NSRunningApplication?
-    private var lastAskText = ""
-    private var askSendAt: Date?
-    private var wisprListening = false
-    private var wisprStartedAt = Date.distantPast
     private var askTask: Task<Void, Never>?
     private var isAnswering = false
     private var pausedForAsk = false
@@ -2036,15 +1992,6 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
             DispatchQueue.main.asyncAfter(deadline: .now() + 8) { [weak self] in
                 note("selection test: purpose box open \(self?.purposePanel != nil), overlays \(self?.overlays.count ?? -1)")
                 self?.closeSelectionUI()
-            }
-        }
-        // Lets a test confirm Narrator can start and cancel Wispr Flow without a key press.
-        if CommandLine.arguments.contains("--test-wispr") {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in self?.askPressed() }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 7) { [weak self] in
-                note("wispr test: microphone in use \(microphoneInUse()), listening \(self?.wisprListening ?? false)")
-                self?.cancelAsk()
-                note("wispr test finished")
             }
         }
     }
@@ -2431,21 +2378,17 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
 
     private var isAskBusy: Bool { isAnswering || askPanel != nil }
 
-    /// Opens the Ask box. Pressing the shortcut again finishes the dictation or sends what is written.
+    /// Opens the Ask box. Pressing the shortcut again sends what is written, or closes the box when it is empty.
     private func askPressed() {
         if jumpPanel != nil || isFindingJump { cancelJump() }
         guard askPanel == nil else {
-            if wisprListening {
-                finishWisprDictation()
-            } else {
-                sendQuestion()
-            }
+            let typed = (askField?.currentEditor()?.string ?? askField?.stringValue ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+            if typed.isEmpty { cancelAsk() } else { sendQuestion() }
             return
         }
         stopAnswer()
         beginAskPause()
         openAskBox()
-        startWisprDictation()
     }
 
     private func beginAskPause() {
@@ -2478,9 +2421,9 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
         field.target = self
         field.action = #selector(askEntered)
         field.setAccessibilityLabel("Ask a question")
-        field.onCancel = { [weak self] in self?.cancelAsk(escapePressed: true) }
+        field.onCancel = { [weak self] in self?.cancelAsk() }
         background.addSubview(field)
-        let hint = NSTextField(labelWithString: "Hold Fn and speak, or type and press Return.")
+        let hint = NSTextField(labelWithString: "Type or dictate your question, then press Return.    Esc to cancel")
         hint.frame = NSRect(x: 16, y: 12, width: size.width - 32, height: 16)
         hint.font = .systemFont(ofSize: 11.5)
         hint.textColor = Palette.secondaryText
@@ -2512,85 +2455,17 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
         askPanel = panel
         askField = content.field
         askHint = content.hint
-        lastAskText = ""
-        askSendAt = nil
         updateControls()
         NSApp.activate(ignoringOtherApps: true)
         panel.makeKeyAndOrderFront(nil)
         panel.makeFirstResponder(content.field)
-        let poll = Timer(timeInterval: 0.15, repeats: true) { [weak self] _ in
-            MainActor.assumeIsolated { self?.watchAskBox() }
-        }
-        RunLoop.main.add(poll, forMode: .common)
-        askPoll = poll
     }
 
     private func closeAskBox() {
-        askPoll?.invalidate()
-        askPoll = nil
         askPanel?.orderOut(nil)
         askPanel = nil
         askField = nil
         askHint = nil
-        askSendAt = nil
-    }
-
-    /// Sends a dictated question as soon as Wispr Flow has finished pasting it.
-    private func watchAskBox() {
-        guard let field = askField else { return }
-        let text = field.currentEditor()?.string ?? field.stringValue
-        if text != lastAskText {
-            if isDictatedInsert(from: lastAskText, to: text) {
-                wisprListening = false
-                askSendAt = Date().addingTimeInterval(0.8)
-                askHint?.stringValue = "Sending your question."
-            } else if askSendAt != nil {
-                askSendAt = nil
-                askHint?.stringValue = "Press Return to send."
-            }
-            lastAskText = text
-        }
-        if wisprListening, Date().timeIntervalSince(wisprStartedAt) > 2, !microphoneInUse() {
-            wisprListening = false
-            askHint?.stringValue = "Hold Fn and speak, or type and press Return."
-        }
-        if let sendAt = askSendAt, Date() >= sendAt { sendQuestion() }
-    }
-
-    private func startWisprDictation() {
-        guard AXIsProcessTrusted(), NSWorkspace.shared.runningApplications.contains(where: { $0.localizedName == "Wispr Flow" }) else {
-            note("wispr unavailable for automatic start")
-            return
-        }
-        askHint?.stringValue = "Starting Wispr Flow."
-        Task { [weak self] in
-            // Wispr needs Option and Shift to be released before it can recognise its own shortcut.
-            for _ in 0..<30 where !NSEvent.modifierFlags.intersection([.option, .shift, .command, .control]).isEmpty {
-                try? await Task.sleep(for: .milliseconds(50))
-            }
-            guard let self, self.askPanel != nil else { return }
-            pressWisprHandsFreeShortcut()
-            self.wisprStartedAt = Date()
-            try? await Task.sleep(for: .seconds(1.1))
-            guard self.askPanel != nil else { return }
-            self.wisprListening = microphoneInUse()
-            note("wispr listening: \(self.wisprListening)")
-            self.askHint?.stringValue = self.wisprListening
-                ? "Listening through Wispr Flow. Press Option + Shift + A when you finish."
-                : "Hold Fn and speak, or type and press Return."
-        }
-    }
-
-    private func finishWisprDictation() {
-        // Wispr treats a second press within half a second as a cancel, so wait until that window has passed.
-        let wait = max(0, 0.7 - Date().timeIntervalSince(wisprStartedAt))
-        wisprListening = false
-        askHint?.stringValue = "Turning your words into text."
-        Task { [weak self] in
-            try? await Task.sleep(for: .seconds(wait))
-            guard self?.askPanel != nil else { return }
-            pressWisprHandsFreeShortcut()
-        }
     }
 
     @objc private func askEntered() { sendQuestion() }
@@ -2702,10 +2577,7 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
         answerFinished.onFinish?()
     }
 
-    private func cancelAsk(escapePressed: Bool = false) {
-        // Escape discards a Wispr dictation, so nothing gets pasted into another app.
-        if wisprListening, !escapePressed { pressEscapeKey() }
-        wisprListening = false
+    private func cancelAsk() {
         if askPanel != nil {
             closeAskBox()
             askReturnApp?.activate()
@@ -3632,7 +3504,6 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
         lastSources = []
         isAnswering = false
         let box = askBoxContent()
-        box.hint.stringValue = "Listening through Wispr Flow. Press Option + Shift + A when you finish."
         save(box.view, "ask-box")
         save(purposeContent(purpose: "").view, "purpose")
         for pose in LumenArt.poses {
@@ -3765,8 +3636,6 @@ func runSelfTest() -> Int32 {
     check("reads a spoken answer and its sources", parsed?.sources.first?.url == "https://www.python.org/downloads/")
     check("opens ordinary web sources", safeSourceURL("https://www.python.org/downloads/") != nil)
     check("refuses unsafe source links", safeSourceURL("file:///etc/passwd") == nil && safeSourceURL("javascript:alert(1)") == nil)
-    check("recognises a dictation pasted by Wispr Flow", isDictatedInsert(from: "", to: "What does this term mean?"))
-    check("does not send while you are typing", !isDictatedInsert(from: "What doe", to: "What does"))
     print(failures == 0 ? "All self-tests passed" : "\(failures) self-tests failed")
     return failures == 0 ? 0 : 1
 }
