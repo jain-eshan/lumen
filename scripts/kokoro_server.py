@@ -3,8 +3,11 @@
 Reads one JSON request per line on stdin: {"id": 1, "text": "...", "voice": "af_heart"}
 Writes one JSON reply per line on stdout: {"id": 1, "path": "/tmp/...wav"} or {"id": 1, "error": "..."}
 """
+import atexit
 import json
 import os
+import shutil
+import signal
 import sys
 import tempfile
 import uuid
@@ -38,6 +41,9 @@ EspeakWrapper.set_data_path(str(link / "espeak-ng-data"))
 # The app passes the model folder it ships with; development runs use the downloaded copy.
 model = load_model(os.environ.get("NARRATOR_MODEL", "mlx-community/Kokoro-82M-bf16"))
 folder = Path(tempfile.mkdtemp(prefix="narrator-"))
+# Clips the app never played are deleted when the service ends. The app ends it with SIGTERM.
+atexit.register(shutil.rmtree, folder, True)
+signal.signal(signal.SIGTERM, lambda *_: sys.exit(0))
 
 
 def reply(message):

@@ -44,7 +44,7 @@ All shortcuts use Option + Shift.
 
 ## Build it
 
-You need Xcode command line tools and [uv](https://docs.astral.sh/uv/). The app is one Swift file, `app/main.swift`, plus a Python voice service, `scripts/kokoro_server.py`.
+You need Xcode command line tools and [uv](https://docs.astral.sh/uv/). The app is a handful of Swift files in `app/`, plus a Python voice service, `scripts/kokoro_server.py`.
 
 ```bash
 uv venv envs/kokoro --python 3.12
@@ -78,7 +78,16 @@ The demo is a [HyperFrames](https://hyperframes.heygen.com) project in `videos/n
 
 ## Layout
 
-- `app/main.swift`: the whole app
+- `app/*.swift`: the app, one file per part:
+  - `Reading.swift`: turns recognized screen text into spoken phrases
+  - `Claude.swift`: the optional Claude reading direction, Ask, and the on-device director
+  - `Speech.swift`: talks to the voice service, plus the diagnostic log
+  - `Screen.swift`: screen capture, scrolling and window lookup
+  - `Views.swift`: the selector, highlight, jump picker and shared visual style
+  - `Lumen.swift`: Lumen on the Dock and its speech bubble
+  - `App.swift`: the menu bar app that ties it all together
+  - `SelfTest.swift`: checks run with `--selftest`
+  - `main.swift`: starts the app
 - `app/build.sh`, `app/package.sh`: build and disk image
 - `app/lumen/`: Lumen's poses, bundled into the app
 - `art/`: Lumen's concept, pose sheet and the cut-out tool

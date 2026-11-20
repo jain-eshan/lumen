@@ -8,7 +8,7 @@ RES="$BUNDLE/Contents/Resources"
 SIGNING="$LAB/.signing"
 [[ "${1:-}" == "--full" ]] && rm -rf "$BUNDLE"
 mkdir -p "$BUNDLE/Contents/MacOS" "$RES"
-swiftc -O "$APP_SRC/main.swift" -o "$BUNDLE/Contents/MacOS/Narrator"
+swiftc -O "$APP_SRC"/*.swift -o "$BUNDLE/Contents/MacOS/Narrator"
 cp "$LAB/scripts/kokoro_server.py" "$RES/kokoro_server.py"
 cat > "$BUNDLE/Contents/Info.plist" <<'PLIST'
 <?xml version="1.0" encoding="UTF-8"?>
