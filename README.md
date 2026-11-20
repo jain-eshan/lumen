@@ -14,7 +14,7 @@ Needs an Apple silicon Mac on macOS 14 or later.
 
 ## Install
 
-Download `Narrator.dmg` from the [latest release](https://github.com/jain-eshan/narrator/releases/latest), open it, and drag Narrator to Applications. The app is self-signed, so the first time, right-click it and choose Open. The file is about 900 MB because the voice engine and model are inside, so it works offline.
+Download `Narrator.dmg` from the [latest release](https://github.com/jain-eshan/narrator/releases/latest), open it, and drag Narrator to Applications. The app is self-signed rather than signed with an Apple Developer ID, so macOS stops it the first time. On macOS 15 or later, open it once, then go to System Settings > Privacy & Security, scroll down and click Open Anyway. On macOS 14, right-click it and choose Open. The file is about 900 MB because the voice engine and model are inside, so it works offline.
 
 On first launch Lumen flutters down onto your Dock, says hello, and walks you through the Screen Recording and Accessibility permissions. Narrator only looks at the area you select.
 
@@ -22,7 +22,8 @@ On first launch Lumen flutters down onto your Dock, says hello, and walks you th
 
 - **Point at anything.** Press Option + Shift + 4 and drag over any text on screen.
 - **Tune it.** Say what it's for, pick a mood (Calm, Warm, Serious, News, Story, or Auto) and a voice: a woman or a man, with an American or British accent, or Auto to match what you're reading. Click a voice to hear a sample first.
-- **Sit back.** It reads line by line and highlights each one as it goes.
+- **Sit back.** It reads line by line and highlights each one as it goes, then scrolls on by itself.
+- **Tables make sense.** A table is read row by row, with each value named by its column, instead of column by column.
 - **Keep up with Claude.** Follow mode reads new replies as they stream in.
 - **Jump.** Click any sentence and it carries on from there.
 - **Ask.** Press Option + Shift + A to ask about what's on screen. Type, or dictate with any dictation app you already use, then press Return. Ask needs the `claude` command installed.
@@ -42,6 +43,26 @@ All shortcuts use Option + Shift.
 | Option + Shift + J | Jump to a sentence |
 | Esc | Cancel a selection or jump |
 
+## Privacy
+
+- **Reading stays on your Mac.** Narrator looks only at the area you select, reads its text with macOS's own text recognition, and speaks it with the voice model inside the app. Nothing is uploaded. There is no account, no analytics and no tracking.
+- **Claude features send text only when you use them.** With "Richer voice with Claude" on, the text in your reading area goes to Claude to plan the reading. Ask sends your question, the sentence being read, and the text in the reading area (or in the window under your pointer when nothing is being read), and Claude may search the web to answer. Both run through your own `claude` command and your Claude plan. Narrator never uses an API key.
+- **What stays on disk.** Your settings (voice, mood, speed, and what you asked it to read in each app) are kept in macOS preferences. A diagnostic log at `~/Library/Logs/Narrator/narrator.log` records events such as which app was read and how long things took, never the text itself.
+
+## Uninstall
+
+Quit Narrator from the menu bar, then:
+
+```bash
+rm -rf /Applications/Narrator.app ~/Library/Logs/Narrator ~/.cache/narrator-espeak
+```
+
+```bash
+defaults delete local.narrator.app
+```
+
+You can also remove Narrator from Screen Recording and Accessibility in System Settings, under Privacy & Security.
+
 ## Build it
 
 You need Xcode command line tools and [uv](https://docs.astral.sh/uv/). The app is a handful of Swift files in `app/`, plus a Python voice service, `scripts/kokoro_server.py`.
@@ -52,6 +73,8 @@ uv pip install --python envs/kokoro/bin/python -r requirements.txt
 HF_HOME=models envs/kokoro/bin/python -c "from huggingface_hub import snapshot_download; snapshot_download('mlx-community/Kokoro-82M-bf16')"
 ```
 
+The text tools in `requirements.txt` pull in PyTorch, but the voice runs on MLX and never uses it, so `build.sh` leaves PyTorch and its companions out of the app.
+
 Create a self-signed code signing identity and put its files in `.signing/` (`identity`, `keychain-password`, `narrator.keychain-db`). `build.sh` reads them. Then:
 
 ```bash
@@ -60,6 +83,18 @@ zsh app/package.sh         # optional: makes dist/Narrator.dmg to share
 ```
 
 These steps have not been tried on a clean machine yet. If one fails, please open an issue.
+
+### Check a change
+
+The reading logic has its own checks, and the app can draw its playback bar, boxes and Lumen's poses to images, so you can see a visual change without clicking through it:
+
+```bash
+Narrator.app/Contents/MacOS/Narrator --selftest
+```
+
+```bash
+mkdir -p /tmp/previews && Narrator.app/Contents/MacOS/Narrator --render-ui=/tmp/previews
+```
 
 ## Lumen's art
 
