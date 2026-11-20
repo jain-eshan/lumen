@@ -14,7 +14,7 @@ Needs an Apple silicon Mac on macOS 14 or later.
 
 ## Install
 
-Download `Narrator.dmg` from the [latest release](https://github.com/jain-eshan/narrator/releases/latest), open it, and drag Narrator to Applications. The app is self-signed rather than signed with an Apple Developer ID, so macOS stops it the first time. On macOS 15 or later, open it once, then go to System Settings > Privacy & Security, scroll down and click Open Anyway. On macOS 14, right-click it and choose Open. The file is about 900 MB because the voice engine and model are inside, so it works offline.
+Download `Narrator.dmg` from the [latest release](https://github.com/jain-eshan/narrator/releases/latest), open it, and drag Narrator to Applications. The app is self-signed rather than signed with an Apple Developer ID, so macOS stops it the first time. On macOS 15 or later, open it once, then go to System Settings > Privacy & Security, scroll down and click Open Anyway. On macOS 14, right-click it and choose Open. The file is about 600 MB because the voice engine and model are inside, so it works offline.
 
 On first launch Lumen flutters down onto your Dock, says hello, and walks you through the Screen Recording and Accessibility permissions. Narrator only looks at the area you select.
 
