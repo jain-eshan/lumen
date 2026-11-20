@@ -47,7 +47,12 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
     private func narratorVoice(for material: String) -> String {
         voiceChoices.first { $0.title == readingVoice }?.voice ?? voice(for: material)
     }
-    private var usesClaude: Bool { UserDefaults.standard.bool(forKey: "claudeDirection") && ClaudeCode.executable() != nil }
+    private var usesClaude: Bool { UserDefaults.standard.bool(forKey: "claudeDirection") && claudeSetup?.isReady == true }
+    /// The last check of Claude Code, refreshed at launch and whenever a Claude feature is used.
+    private var claudeSetup: ClaudeSetup?
+    private var claudeMenuItem: NSMenuItem?
+    private var richerVoiceItem: NSMenuItem?
+    private var signInWatch: Task<Void, Never>?
     private var statusBeforePause: (String, String)?
     private var barHide: DispatchWorkItem?
     private var highlightPanel: NSPanel?
@@ -121,9 +126,9 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
         menu.addItem(withTitle: "Show Lumen", action: #selector(togglePet(_:)), keyEquivalent: "").state = pet.isEnabled ? .on : .off
         menu.addItem(withTitle: "Keep Lumen in one place", action: #selector(togglePetStaysPut(_:)), keyEquivalent: "").state = pet.staysPut ? .on : .off
         menu.addItem(withTitle: "Replay welcome", action: #selector(welcome), keyEquivalent: "")
-        if ClaudeCode.executable() != nil {
-            menu.addItem(withTitle: "Richer voice with Claude (uses your Claude plan)", action: #selector(toggleClaudeDirection(_:)), keyEquivalent: "").state = usesClaude ? .on : .off
-        }
+        menu.addItem(.separator())
+        claudeMenuItem = menu.addItem(withTitle: "Connect Claude…", action: #selector(connectClaude), keyEquivalent: "")
+        richerVoiceItem = menu.addItem(withTitle: "Richer voice with Claude (uses your Claude plan)", action: #selector(toggleClaudeDirection(_:)), keyEquivalent: "")
         menu.addItem(.separator())
         menu.addItem(withTitle: "Quit Narrator", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "")
         menu.items.filter { $0.action != nil && $0.action != #selector(NSApplication.terminate(_:)) }.forEach { $0.target = self }
@@ -132,6 +137,7 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
         let saved = UserDefaults.standard.float(forKey: "speed")
         speed = speeds.contains(saved) ? saved : 1
 
+        Task { await refreshClaudeSetup() }
         registerShortcuts()
         watchInput()
         note("launched; screen recording \(CGPreflightScreenCaptureAccess()), accessibility \(AXIsProcessTrusted())")
@@ -295,20 +301,136 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
             return
         }
         pet.mood = .happy
-        pet.say("All set. Drag over any text, like a Claude reply, and I'll read it to you. Next time, press Option + Shift + 4.", actions: [
-            ("Pick text", { [weak self] in self?.beginSelection() }),
-            ("Later", { [weak self] in self?.finishSetup() }),
-        ])
+        let ready = "All set. Drag over any text, like a Claude reply, and I'll read it to you. Next time, press Option + Shift + 4."
+        Task { [weak self] in
+            guard let self, self.onboarding else { return }
+            // Claude is optional: reading needs nothing more. Offer it only when it is not connected yet.
+            if await self.refreshClaudeSetup().isReady {
+                self.pet.say(ready + " Claude is connected too, so Option + Shift + A answers questions.", actions: [
+                    ("Pick text", { [weak self] in self?.beginSelection() }),
+                    ("Later", { [weak self] in self?.finishSetup() }),
+                ])
+            } else {
+                self.pet.say(ready + " Optional: connect Claude to ask questions about your screen.", actions: [
+                    ("Pick text", { [weak self] in self?.beginSelection() }),
+                    ("Connect Claude", { [weak self] in
+                        self?.finishSetup(relax: false)
+                        self?.connectClaude()
+                    }),
+                ])
+            }
+        }
     }
 
-    private func finishSetup() {
+    private func finishSetup(relax: Bool = true) {
         accessPoll?.invalidate()
         accessPoll = nil
         onboarding = false
         UserDefaults.standard.set(true, forKey: "onboarded")
-        if narration == nil {
+        if narration == nil, relax {
             pet.hideBubble()
             pet.relax(after: 1)
+        }
+    }
+
+    // MARK: Connecting Claude
+
+    /// Checks Claude Code again and shows the result in the menu.
+    @discardableResult
+    private func refreshClaudeSetup() async -> ClaudeSetup {
+        let setup = await ClaudeCode.setup()
+        if setup != claudeSetup {
+            let name = switch setup { case .notInstalled: "not installed"; case .signedOut: "signed out"; case .apiAccount: "API account"; case .ready: "ready" }
+            note("claude setup: \(name)")
+        }
+        claudeSetup = setup
+        if case .ready(let email) = setup {
+            claudeMenuItem?.title = "Claude connected" + (email.map { " (\($0))" } ?? "")
+        } else {
+            claudeMenuItem?.title = "Connect Claude…"
+        }
+        richerVoiceItem?.state = usesClaude ? .on : .off
+        return setup
+    }
+
+    @objc private func connectClaude() {
+        pet.show()
+        pet.mood = .thinking
+        Task { [weak self] in
+            guard let self else { return }
+            self.guideClaude(await self.refreshClaudeSetup())
+        }
+    }
+
+    /// Tells the reader what Ask and the richer voice need next, with a button for that step.
+    private func guideClaude(_ setup: ClaudeSetup) {
+        note("claude guidance shown")
+        pet.show()
+        switch setup {
+        case .ready(let email):
+            pet.mood = .happy
+            pet.say("Claude is connected" + (email.map { " as \($0)" } ?? "") + ". Press Option + Shift + A to ask about anything on screen.", hideAfter: 8)
+        case .notInstalled:
+            pet.mood = .listening
+            pet.say("Asking questions uses Claude Code, which comes with your Claude plan at no extra cost. Install it, then come back and click Check again.", actions: [
+                ("How to install", { [weak self] in
+                    NSWorkspace.shared.open(ClaudeCode.setupGuide)
+                    self?.pet.say("When Claude Code is installed, click Check again.", actions: [("Check again", { [weak self] in self?.connectClaude() })])
+                }),
+                ("Check again", { [weak self] in self?.connectClaude() }),
+            ])
+        case .signedOut:
+            pet.mood = .listening
+            pet.say("Claude Code is installed but not signed in. Sign in with your Claude account and I'll connect by myself.", actions: [
+                ("Sign in", { [weak self] in self?.startClaudeSignIn() }),
+                ("Later", {}),
+            ])
+        case .apiAccount:
+            pet.mood = .listening
+            pet.say("Claude Code is signed in with an API account, which bills by usage. I only use a Claude plan, so please sign in with your Claude account instead.", actions: [
+                ("Sign in", { [weak self] in self?.startClaudeSignIn() }),
+                ("Later", {}),
+            ])
+        }
+    }
+
+    /// Opens Claude Code's own sign-in in a Terminal window, which continues in the browser, then watches for it to finish.
+    private func startClaudeSignIn() {
+        guard let claude = ClaudeCode.executable() else { return guideClaude(.notInstalled) }
+        do {
+            let script = try ClaudeCode.workFolder().appendingPathComponent("Sign in to Claude.command")
+            let path = claude.path.replacingOccurrences(of: "'", with: "'\\''")
+            let lines = [
+                "#!/bin/zsh",
+                "unset ANTHROPIC_API_KEY ANTHROPIC_AUTH_TOKEN",
+                "echo 'Narrator: sign in to Claude in the browser window that opens.'",
+                "'\(path)' auth login --claudeai",
+                "echo",
+                "echo 'Done. You can close this window and go back to Narrator.'",
+            ]
+            try (lines.joined(separator: "\n") + "\n").write(to: script, atomically: true, encoding: .utf8)
+            try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: script.path)
+            guard NSWorkspace.shared.open(script) else { throw CocoaError(.fileNoSuchFile) }
+        } catch {
+            note("claude sign-in could not open: \(error)")
+            pet.say("I couldn't open the sign-in. Open Terminal, type claude auth login, press Return, and follow the steps.", actions: [
+                ("Check again", { [weak self] in self?.connectClaude() }),
+            ])
+            return
+        }
+        pet.mood = .thinking
+        pet.say("A Terminal window will open and send you to Claude in your browser. Sign in there, and I'll notice when you're done.")
+        signInWatch?.cancel()
+        signInWatch = Task { [weak self] in
+            for _ in 0..<150 {
+                try? await Task.sleep(for: .seconds(2))
+                guard let self, !Task.isCancelled else { return }
+                let setup = await self.refreshClaudeSetup()
+                if setup.isReady { return self.guideClaude(setup) }
+            }
+            self?.pet.say("I didn't see a sign-in yet. When you've signed in, click Check again.", actions: [
+                ("Check again", { [weak self] in self?.connectClaude() }),
+            ])
         }
     }
 
@@ -337,6 +459,7 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
     }
 
     @objc private func toggleClaudeDirection(_ sender: NSMenuItem) {
+        guard claudeSetup?.isReady == true else { return connectClaude() }
         let on = !usesClaude
         UserDefaults.standard.set(on, forKey: "claudeDirection")
         sender.state = on ? .on : .off
@@ -656,12 +779,26 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
 
     private func openAskBox() {
         pet.show()
-        guard ClaudeCode.executable() != nil else {
-            pet.mood = .paused
-            pet.say("Asking questions uses Claude Code. Install it and sign in, then try again.", hideAfter: 6)
-            finishAsk(nil)
+        guard claudeSetup?.isReady == true else {
+            // Checks again first, since Claude may have been set up since the last look.
+            Task { [weak self] in
+                guard let self else { return }
+                let setup = await self.refreshClaudeSetup()
+                if setup.isReady {
+                    self.showAskBox()
+                } else {
+                    // Finishing first, because guidance shown after it stays up instead of being tidied away.
+                    self.finishAsk(nil)
+                    self.guideClaude(setup)
+                }
+            }
             return
         }
+        showAskBox()
+    }
+
+    private func showAskBox() {
+        guard askPanel == nil else { return }
         pet.mood = .listening
         askReturnApp = NSWorkspace.shared.frontmostApplication
         showAsk(status: "Ask", "Your reading is paused.")
@@ -751,7 +888,14 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
             return
         } catch {
             note("answer failed: \(error)")
-            finishAsk("I couldn't get an answer. Check your connection and try again.")
+            // Says what actually went wrong: Claude not connected, a usage limit, or the connection.
+            let setup = await refreshClaudeSetup()
+            if setup.isReady {
+                finishAsk(ClaudeCode.failureMessage(error))
+            } else {
+                finishAsk("Ask needs Claude to be connected.")
+                guideClaude(setup)
+            }
         }
     }
 
