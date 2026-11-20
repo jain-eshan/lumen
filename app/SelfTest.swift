@@ -162,6 +162,21 @@ func runSelfTest() -> Int32 {
         RunLoop.main.run(until: Date().addingTimeInterval(0.5))
         check("a cleared highlight fades away", tint() < 0.02)
     }
+
+    func status(_ json: String) -> ClaudeSetup { ClaudeCode.setup(fromStatus: Data(json.utf8)) }
+    check("sees Claude connected with a Claude plan", status(#"{"loggedIn":true,"authMethod":"claude.ai","apiProvider":"firstParty","email":"a@b.c"}"#) == .ready(email: "a@b.c"))
+    check("sees Claude Code signed out", status(#"{"loggedIn":false,"authMethod":"none","apiProvider":"firstParty"}"#) == .signedOut)
+    check("refuses an API account that bills by usage", status(#"{"loggedIn":true,"authMethod":"console","apiProvider":"firstParty"}"#) == .apiAccount)
+    check("refuses a cloud provider account", status(#"{"loggedIn":true,"authMethod":"claude.ai","apiProvider":"bedrock"}"#) == .apiAccount)
+    check("treats an unreadable status as signed out", status("not json") == .signedOut)
+    let copies = ["/x/claude-code/2.1.99/a/claude.app/Contents/MacOS/claude", "/x/claude-code/2.1.326/b/claude.app/Contents/MacOS/claude"]
+    check("uses the newest copy of Claude Code first", ClaudeCode.newestFirst(copies).first == copies[1])
+    check("checks the standard Claude Code install folder first", ClaudeCode.installedPaths(home: "/nowhere").first == "/nowhere/.local/bin/claude")
+    check("says when the Claude usage limit is reached", ClaudeCode.failureMessage(PlannerError.unusable("Claude AI usage limit reached")).contains("usage limit"))
+    check("falls back to a connection hint for other failures", ClaudeCode.failureMessage(CancellationError()).contains("internet connection"))
+    let limited = Data(#"{"is_error":true,"result":"Claude AI usage limit reached"}"#.utf8)
+    let failure: Error? = { do { _ = try ClaudeCode.structuredOutput(limited); return nil } catch { return error } }()
+    check("keeps Claude's reason when a reply fails", failure.map(ClaudeCode.failureMessage)?.contains("usage limit") == true)
     print(failures == 0 ? "All self-tests passed" : "\(failures) self-tests failed")
     return failures == 0 ? 0 : 1
 }

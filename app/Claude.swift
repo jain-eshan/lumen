@@ -4,20 +4,102 @@ import Foundation
 
 enum PlannerError: Error { case unusable(String) }
 
+/// Whether Claude Code is on this Mac and signed in to a Claude plan, which Ask and the richer voice need.
+enum ClaudeSetup: Equatable {
+    case notInstalled
+    case signedOut
+    /// Signed in with an Anthropic Console or cloud account, which bills by usage instead of the Claude plan.
+    case apiAccount
+    case ready(email: String?)
+
+    var isReady: Bool { if case .ready = self { true } else { false } }
+}
+
 /// Runs the Claude Code app you are already signed in to, so every request uses your Claude plan.
 enum ClaudeCode {
+    static let setupGuide = URL(string: "https://code.claude.com/docs/en/setup")!
+
     static func executable() -> URL? {
-        let home = FileManager.default.homeDirectoryForCurrentUser.path
-        return ["\(home)/.local/bin/claude", "/opt/homebrew/bin/claude", "/usr/local/bin/claude"]
+        installedPaths(home: FileManager.default.homeDirectoryForCurrentUser.path)
             .first { FileManager.default.isExecutableFile(atPath: $0) }
             .map { URL(fileURLWithPath: $0) }
+    }
+
+    /// Every place Claude Code may be installed, best first. An app opened from the Dock does not see the shell's
+    /// PATH, so the usual install folders are checked directly. The Claude desktop app keeps its own copy of
+    /// Claude Code, signed in with the same account, so people who only use the app need nothing else.
+    static func installedPaths(home: String) -> [String] {
+        let manager = FileManager.default
+        func children(_ folder: String) -> [String] {
+            ((try? manager.contentsOfDirectory(atPath: folder)) ?? []).map { folder + "/" + $0 }
+        }
+        let nodeVersions = children("\(home)/.nvm/versions/node").map { $0 + "/bin/claude" }
+        let desktopCopies = children("\(home)/Library/Application Support/Claude/claude-code").flatMap(children)
+            .map { $0 + "/claude.app/Contents/MacOS/claude" }
+        return ["\(home)/.local/bin/claude", "/opt/homebrew/bin/claude", "/usr/local/bin/claude",
+                "\(home)/.npm-global/bin/claude", "\(home)/.bun/bin/claude"]
+            + newestFirst(nodeVersions) + newestFirst(desktopCopies)
+    }
+
+    /// Orders paths by the version numbers in them, so "2.1.326" comes before "2.1.99".
+    static func newestFirst(_ paths: [String]) -> [String] {
+        paths.sorted { $0.compare($1, options: .numeric) == .orderedDescending }
+    }
+
+    /// Reads `claude auth status --json`. Only a Claude plan counts as ready, since Narrator promises never to bill an API account.
+    static func setup(fromStatus data: Data) -> ClaudeSetup {
+        guard let status = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              status["loggedIn"] as? Bool == true else { return .signedOut }
+        let method = (status["authMethod"] as? String ?? "").lowercased()
+        let provider = (status["apiProvider"] as? String ?? "firstParty").lowercased()
+        if method.contains("console") || method.contains("api") || provider != "firstparty" { return .apiAccount }
+        return .ready(email: status["email"] as? String)
+    }
+
+    /// Checks the Claude Code that Narrator would use, with the same settings it runs Claude Code with.
+    static func setup() async -> ClaudeSetup {
+        guard let claude = executable() else { return .notInstalled }
+        let process = Process()
+        let output = Pipe()
+        process.executableURL = claude
+        process.arguments = ["auth", "status", "--json"]
+        process.environment = environment()
+        process.currentDirectoryURL = try? workFolder()
+        process.standardOutput = output
+        process.standardError = FileHandle.nullDevice
+        process.standardInput = FileHandle.nullDevice
+        let data: Data? = await withCheckedContinuation { continuation in
+            DispatchQueue.global().async {
+                guard (try? process.run()) != nil else { return continuation.resume(returning: nil) }
+                let limit = DispatchWorkItem { if process.isRunning { process.terminate() } }
+                DispatchQueue.global().asyncAfter(deadline: .now() + 15, execute: limit)
+                let reply = output.fileHandleForReading.readDataToEndOfFile()
+                process.waitUntilExit()
+                limit.cancel()
+                continuation.resume(returning: reply)
+            }
+        }
+        return data.map(setup(fromStatus:)) ?? .signedOut
+    }
+
+    /// What to tell the reader when Ask fails while Claude is connected.
+    static func failureMessage(_ error: Error) -> String {
+        guard case .unusable(let reason)? = error as? PlannerError else {
+            return "I couldn't get an answer. Check your internet connection and try again."
+        }
+        let lower = reason.lowercased()
+        if lower.contains("limit") { return "You've reached your Claude usage limit. Try again when it resets." }
+        if lower.contains("overloaded") || lower.contains("529") { return "Claude is busy right now. Try again in a minute." }
+        return "I couldn't get an answer. Check your internet connection and try again."
     }
 
     static func structuredOutput(_ data: Data) throws -> Data {
         guard let reply = try JSONSerialization.jsonObject(with: data) as? [String: Any],
               reply["is_error"] as? Bool != true,
               let output = reply["structured_output"] else {
-            throw PlannerError.unusable("Claude reply was incomplete")
+            // Keep Claude's own explanation, such as a usage limit, so the reader is told what went wrong.
+            let reason = ((try? JSONSerialization.jsonObject(with: data)) as? [String: Any])?["result"] as? String
+            throw PlannerError.unusable(reason ?? "Claude reply was incomplete")
         }
         return try JSONSerialization.data(withJSONObject: output)
     }

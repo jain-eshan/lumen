@@ -18,6 +18,16 @@ Download `Narrator.dmg` from the [latest release](https://github.com/jain-eshan/
 
 On first launch Lumen flutters down onto your Dock, says hello, and walks you through the Screen Recording and Accessibility permissions. Narrator only looks at the area you select.
 
+### Connect Claude (optional)
+
+Reading needs nothing more. Two extras use Claude Code with your Claude plan, at no extra cost: Ask, and the richer reading voice.
+
+1. Choose **Connect Claude…** from Narrator's menu bar icon, or press Option + Shift + A. Lumen checks your setup and tells you the next step.
+2. If Claude Code isn't installed, follow [Anthropic's install guide](https://code.claude.com/docs/en/setup), then click **Check again**. Narrator also finds the copy of Claude Code that the Claude desktop app keeps, if you have one.
+3. If Claude Code isn't signed in, click **Sign in**. A Terminal window opens Claude's own sign-in in your browser, and Narrator connects by itself once you're done.
+
+The menu then shows **Claude connected**. Narrator only uses a Claude plan. If Claude Code is signed in with an API (Console) account, which bills per use, Narrator asks you to sign in with your Claude account instead.
+
 ## What it does
 
 - **Point at anything.** Press Option + Shift + 4 and drag over any text on screen.
@@ -26,7 +36,7 @@ On first launch Lumen flutters down onto your Dock, says hello, and walks you th
 - **Tables make sense.** A table is read row by row, with each value named by its column, instead of column by column.
 - **Keep up with Claude.** Follow mode reads new replies as they stream in.
 - **Jump.** Click any sentence and it carries on from there.
-- **Ask.** Press Option + Shift + A to ask about what's on screen. Type, or dictate with any dictation app you already use, then press Return. Ask needs the `claude` command installed.
+- **Ask.** Press Option + Shift + A to ask about what's on screen. Type, or dictate with any dictation app you already use, then press Return. Ask needs Claude connected, as described above.
 - **Lumen.** The moth lives on top of your Dock. It wanders and reads to itself, flies over to the icon of the app you're reading, and its mouth and lantern follow the voice. It listens while you ask, thinks while Claude works, and falls asleep after a few quiet minutes. Hover over it for a tip, click it to start or pause, or pick it up and drop it. It steps aside when your pointer is over the Dock below it. Turn it off from the menu bar, or choose Keep Lumen in one place and it stays wherever you drop it, with no wandering or following. With Reduce Motion on, it stays put.
 
 ## Shortcuts
