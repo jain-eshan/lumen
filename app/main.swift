@@ -13,6 +13,8 @@ struct ScreenLine: Equatable {
     var touchesTop = false
     var touchesBottom = false
     var confidence: Float = 1
+    /// True for a line made from one whole row of a table by `tableAware`.
+    var tableRow = false
 }
 
 /// The characters of one screen line covered by a spoken sentence.
@@ -143,6 +145,164 @@ func endsThought(_ text: String) -> Bool {
     return text.trimmingCharacters(in: closing).last.map { ".!?:;".contains($0) } ?? false
 }
 
+// MARK: Tables begin
+
+/// The text recognizer returns a table one column at a time, which reads as nonsense. This finds a table by how its
+/// cells line up, then replaces its lines with one line per row: the row's label, then "Header: value" for each other column.
+func tableAware(_ lines: [ScreenLine]) -> [ScreenLine] {
+    let sized = lines.indices.filter { lines[$0].box.width > 0 && !lines[$0].tableRow }
+    guard sized.count >= 9 else { return lines }
+
+    // Columns are lines starting at the same left edge. Lines in a column are listed top to bottom.
+    var columnOf: [Int: Int] = [:]
+    var edges: [CGFloat] = []
+    var lastEdge: CGFloat = -1
+    for index in sized.sorted(by: { lines[$0].box.minX < lines[$1].box.minX }) {
+        let x = lines[index].box.minX
+        if x - lastEdge > 0.006 { edges.append(x) }
+        lastEdge = x
+        columnOf[index] = edges.count - 1
+    }
+    let byTop = sized.sorted { lines[$0].box.maxY > lines[$1].box.maxY }
+    var byColumn: [Int: [Int]] = [:]
+    for index in byTop { byColumn[columnOf[index]!, default: []].append(index) }
+
+    /// A line sitting right under another in its column is a wrapped cell, not a new row.
+    func tight(_ above: Int, _ below: Int) -> Bool {
+        lines[above].box.minY - lines[below].box.maxY <= 0.9 * max(lines[above].box.height, lines[below].box.height)
+    }
+    var wraps = Set<Int>()
+    for column in byColumn.values {
+        for (above, below) in zip(column, column.dropFirst()) where tight(above, below) { wraps.insert(below) }
+    }
+
+    // Lines whose tops match form a candidate row. Three or more in a row of columns, repeated, is a table.
+    let typical = sized.map { lines[$0].box.height }.sorted()[sized.count / 2]
+    var groups: [[Int]] = []
+    for index in byTop {
+        if let previous = groups.last?.last, lines[previous].box.maxY - lines[index].box.maxY <= 0.35 * typical {
+            groups[groups.count - 1].append(index)
+        } else {
+            groups.append([index])
+        }
+    }
+    let starts: [[Int: Int]] = groups
+        .filter { group in group.filter { wraps.contains($0) }.count * 2 < group.count }
+        .map { group in Dictionary(group.map { (columnOf[$0]!, $0) }, uniquingKeysWith: { first, _ in first }) }
+        .filter { $0.count >= 3 }
+
+    // The table is the set of columns that lines up with the most cells over three or more rows. Columns far apart,
+    // such as a sidebar and a menu on the other side of the page, do not count.
+    func close(_ columns: [Int], _ members: [Int]) -> Bool {
+        zip(columns, columns.dropFirst()).allSatisfy { left, right in
+            let gaps = members.compactMap { row in starts[row][left].map { edges[right] - lines[$0].box.maxX } }.sorted()
+            return gaps.isEmpty || gaps[gaps.count / 2] <= 0.25
+        }
+    }
+    let startColumns = starts.map { Set($0.keys) }
+    var remaining = Array(starts.indices)
+    var tables: [(rows: [[Int: Int]], columns: [Int])] = []
+    while starts.count <= 150 {
+        var best: (score: Int, columns: [Int], rows: [Int])?
+        var tried = Set<[Int]>()
+        for (offset, a) in remaining.enumerated() {
+            for b in remaining[(offset + 1)...] {
+                var columns = startColumns[a].intersection(startColumns[b]).sorted()
+                guard columns.count >= 3, tried.insert(columns).inserted else { continue }
+                // A real column shows up in most rows; one that lines up by chance does not.
+                var rows: [Int] = []
+                while columns.count >= 3 {
+                    rows = remaining.filter { startColumns[$0].intersection(columns).count * 10 >= columns.count * 7 }
+                    let kept = columns.filter { column in rows.filter { startColumns[$0].contains(column) }.count * 10 >= rows.count * 8 }
+                    if kept.count == columns.count { break }
+                    columns = kept
+                }
+                guard columns.count >= 3, rows.count >= 3, close(columns, rows) else { continue }
+                let score = rows.reduce(0) { $0 + startColumns[$1].intersection(columns).count }
+                if score > (best?.score ?? 0) { best = (score, columns, rows) }
+            }
+        }
+        guard let table = best else { break }
+        tables.append((table.rows.map { starts[$0] }, table.columns))
+        remaining.removeAll { table.rows.contains($0) }
+    }
+    guard !tables.isEmpty else { return lines }
+
+    func union(_ indexes: [Int]) -> CGRect { indexes.dropFirst().reduce(lines[indexes[0]].box) { $0.union(lines[$1].box) } }
+    func joined(_ cell: [Int]) -> String {
+        cell.reduce("") { text, index in
+            let next = lines[index].text.trimmingCharacters(in: .whitespaces)
+            return text.hasSuffix("-") ? text + next : (text.isEmpty ? next : text + " " + next)
+        }
+    }
+    func ended(_ text: String) -> String {
+        let plain = text.trimmingCharacters(in: CharacterSet(charactersIn: " ,;:"))
+        return plain.isEmpty ? "" : (".!?".contains(plain.last!) ? plain : plain + ".")
+    }
+
+    var consumed = Set<Int>()
+    var inserts: [Int: [ScreenLine]] = [:]
+    for table in tables {
+        var rows = table.rows.map { row in table.columns.map { column in row[column].map { [$0] } ?? [] } }
+        var startAt: [Int: Int] = [:]
+        for (row, cells) in rows.enumerated() { for cell in cells { if let index = cell.first { startAt[index] = row } } }
+
+        // Wrapped lines under a cell belong to it, unless they run into the next column or past the cell's width.
+        for (position, column) in table.columns.enumerated() {
+            let widest = rows.compactMap { $0[position].first }.map { lines[$0].box.width }.max() ?? 0
+            let limit = position + 1 < table.columns.count ? edges[table.columns[position + 1]] - 0.004 : edges[column] + widest * 1.3
+            var currentRow: Int?
+            var previous: Int?
+            for index in byColumn[column] ?? [] {
+                if let start = startAt[index] {
+                    currentRow = start
+                    previous = index
+                } else if let row = currentRow, let above = previous, tight(above, index), lines[index].box.maxX <= limit {
+                    rows[row][position].append(index)
+                    previous = index
+                } else {
+                    currentRow = nil
+                    previous = nil
+                }
+            }
+        }
+
+        let cells = rows.map { $0.map(joined) }
+        let headed = cells[0].filter { $0.contains { $0.isNumber } }.count * 2 <= cells[0].filter { !$0.isEmpty }.count
+        var made: [ScreenLine] = []
+        for (row, values) in cells.enumerated() {
+            let sentence: String
+            if headed && row == 0 {
+                let names = values.filter { !$0.isEmpty }
+                sentence = "Table with columns " + (names.count > 1 ? names.dropLast().joined(separator: ", ") + ", and " + names.last! : names.joined()) + "."
+            } else if headed {
+                let pairs = values.indices.dropFirst().filter { !values[$0].isEmpty }.map { (cells[0][$0].isEmpty ? "" : cells[0][$0] + ": ") + values[$0] }
+                sentence = ([values[0]] + pairs).map(ended).filter { !$0.isEmpty }.joined(separator: " ")
+            } else {
+                sentence = values.map(ended).filter { !$0.isEmpty }.joined(separator: " ")
+            }
+            let covered = rows[row].flatMap { $0 }
+            guard !sentence.isEmpty, !covered.isEmpty else { continue }
+            made.append(ScreenLine(
+                text: sentence, box: union(covered),
+                touchesTop: covered.contains { lines[$0].touchesTop }, touchesBottom: covered.contains { lines[$0].touchesBottom },
+                confidence: covered.map { lines[$0].confidence }.min() ?? 1, tableRow: true
+            ))
+            consumed.formUnion(covered)
+        }
+        if let at = rows.flatMap({ $0.flatMap { $0 } }).min() { inserts[at] = made }
+    }
+
+    var result: [ScreenLine] = []
+    for index in lines.indices {
+        result += inserts[index] ?? []
+        if !consumed.contains(index) { result.append(lines[index]) }
+    }
+    return result
+}
+
+// MARK: Tables end
+
 /// Chat apps place the user's own messages to the right of the column holding the replies.
 func rightSideUnits(_ units: [Utterance], lines: [ScreenLine], screen: [ScreenLine]) -> Set<Int> {
     let edges = screen.filter { $0.box.width > 0 }.map(\.box.minX).sorted()
@@ -170,7 +330,7 @@ func paragraphRanges(_ lines: [ScreenLine], in range: Range<Int>) -> [Range<Int>
         let height = max(above.box.height, below.box.height)
         let wideGap = height > 0 && above.box.minY - below.box.maxY > height * 0.9
         let endedEarly = widest > 0 && above.box.width < widest * 0.72 && ".!?:".contains(above.text.last ?? " ")
-        if wideGap || endedEarly || below.box.minY > above.box.minY || speakerLabelLength(in: below.text) > 0 {
+        if wideGap || endedEarly || below.box.minY > above.box.minY || speakerLabelLength(in: below.text) > 0 || above.tableRow || below.tableRow {
             paragraphs.append(start..<index)
             start = index
         }
@@ -458,11 +618,11 @@ func recognizeLinesNow(in image: CGImage, using request: VNRecognizeTextRequest 
     request.recognitionLevel = .accurate
     request.usesLanguageCorrection = true
     try VNImageRequestHandler(cgImage: image).perform([request])
-    return (request.results ?? []).compactMap { observation in
+    return tableAware((request.results ?? []).compactMap { observation in
         guard let candidate = observation.topCandidates(1).first else { return nil }
         let box = observation.boundingBox
         return ScreenLine(text: candidate.string, box: box, touchesTop: box.maxY > 0.985, touchesBottom: box.minY < 0.015, confidence: candidate.confidence)
-    }
+    })
 }
 
 // MARK: - Claude reading plan
@@ -730,8 +890,12 @@ enum Planner {
     stay restrained for technical text. Set speaker to woman or man only for spoken dialogue between characters in \
     a story, otherwise narrator. List in emphasis at most two single words a good reader would stress, usually none \
     or one. Set through to the same number as unit unless a rewrite covers several units. Set say to null so the \
-    unit is read word for word. Set say only for tables, chart labels or other text that cannot be read naturally, \
-    using only values in those units. If no units match the purpose, return an empty items list. Set material to \
+    unit is read word for word. Set say only for chart labels or other text that cannot be read naturally, \
+    using only values in those units. Units tagged [table row N] are the rows of a table, already in reading order, written as a \
+    label followed by Header: value pairs. A unit beginning Table with columns names the headers, so leave its say null. For every \
+    other row, set unit to its first unit and through to its last unit, and set say to one or two natural spoken sentences that \
+    carry every value in the row and use the headers only for their meaning, so Plan A. Price: 10 dollars. Limit: 5 users. becomes \
+    Plan A costs 10 dollars and allows 5 users. Never read out the headers as a list, and use only values that appear in the row. If no units match the purpose, return an empty items list. Set material to \
     case, news, novel or other.
     """
     static let schema = #"{"type":"object","additionalProperties":false,"required":["material","items"],"properties":{"material":{"type":"string","enum":["case","news","novel","other"]},"items":{"type":"array","items":{"type":"object","additionalProperties":false,"required":["unit","through","mood","speaker","emphasis","say"],"properties":{"unit":{"type":"integer"},"through":{"type":"integer"},"mood":{"type":"string","enum":["neutral","measured","building","turning","doubtful","warm","tender","somber","quiet"]},"speaker":{"type":"string","enum":["narrator","woman","man"]},"emphasis":{"type":"array","items":{"type":"string"}},"say":{"anyOf":[{"type":"string"},{"type":"null"}]}}}}}}"#
@@ -740,8 +904,8 @@ enum Planner {
         try JSONDecoder().decode(ReadingPlan.self, from: ClaudeCode.structuredOutput(data))
     }
 
-    static func plan(units: [Utterance], purpose: String, alreadyRead: [String], following: Bool, rightSide: Set<Int> = [], helper: WarmClaude? = nil) async throws -> ReadingPlan {
-        let numbered = units.enumerated().map { "\($0.offset)\(rightSide.contains($0.offset) ? " [right side]" : ""): \($0.element.text)" }.joined(separator: "\n")
+    static func plan(units: [Utterance], purpose: String, alreadyRead: [String], following: Bool, rightSide: Set<Int> = [], tableRows: [Int: Int] = [:], helper: WarmClaude? = nil) async throws -> ReadingPlan {
+        let numbered = units.enumerated().map { "\($0.offset)\(rightSide.contains($0.offset) ? " [right side]" : "")\(tableRows[$0.offset].map { " [table row \($0)]" } ?? ""): \($0.element.text)" }.joined(separator: "\n")
         let request = purpose.isEmpty ? "Read everything meaningful in the selected area." : purpose
         let goal = following ? request + " Do not read the user's own messages or anything being typed in a message box." : request
         let prompt = """
@@ -876,21 +1040,35 @@ let syntheticScrollMarker: Int64 = 0x4E415252
 
 func globalCursorLocation() -> CGPoint { CGEvent(source: nil)?.location ?? .zero }
 
-/// Scrolls in small steps so the page glides, and only borrows the cursor if it is elsewhere.
-func scrollDown(in rect: CGRect) async {
-    let steps = 10
-    let step = Int32(-(rect.height * 0.75) / CGFloat(steps))
+/// How far through a glide the page should be, from 0 to 1, easing in and out so it starts and stops gently.
+func easedProgress(_ time: Double) -> Double {
+    let t = min(max(time, 0), 1)
+    return t * t * (3 - 2 * t)
+}
+
+/// Glides the page down a screen the way a trackpad flick does: slow, quick, slow. It follows the clock rather than
+/// counting steps, so the motion stays even if a step runs late. It only borrows the cursor if it is elsewhere.
+func scrollDown(in rect: CGRect, gentle: Bool = false) async {
+    let distance = Int(rect.height * 0.75)
+    let duration = gentle ? 0.15 : min(max(Double(distance) / 850, 0.55), 0.9)
     let cursor = globalCursorLocation()
     let target = CGPoint(x: rect.midX, y: rect.midY)
     let borrowCursor = !rect.contains(cursor)
     if borrowCursor { CGWarpMouseCursorPosition(target) }
-    for _ in 0..<steps {
-        if let event = CGEvent(scrollWheelEvent2Source: nil, units: .pixel, wheelCount: 1, wheel1: step, wheel2: 0, wheel3: 0) {
+    let clock = ContinuousClock()
+    let began = clock.now
+    var sent = 0
+    while sent < distance {
+        let elapsed = (clock.now - began)
+        let time = Double(elapsed.components.seconds) + Double(elapsed.components.attoseconds) / 1e18
+        let reached = time >= duration ? distance : Int((Double(distance) * easedProgress(time / duration)).rounded())
+        if reached > sent, let event = CGEvent(scrollWheelEvent2Source: nil, units: .pixel, wheelCount: 1, wheel1: Int32(-(reached - sent)), wheel2: 0, wheel3: 0) {
             event.location = borrowCursor ? target : cursor
             event.setIntegerValueField(.eventSourceUserData, value: syntheticScrollMarker)
             event.post(tap: .cghidEventTap)
+            sent = reached
         }
-        try? await Task.sleep(for: .milliseconds(18))
+        try? await Task.sleep(for: .milliseconds(8))
     }
     if borrowCursor { CGWarpMouseCursorPosition(cursor) }
 }
@@ -1119,7 +1297,83 @@ struct HighlightSegment {
 
 /// Marks the sentence being read and sweeps across it in time with the voice.
 final class HighlightView: NSView {
-    var segments: [HighlightSegment] = [] { didSet { needsDisplay = true } }
+    /// Where the highlights should be. The view glides to them, so moving to the next sentence, line or screen is one
+    /// smooth motion, and a highlight fades in and out instead of popping.
+    var segments: [HighlightSegment] = [] { didSet { retarget() } }
+
+    private struct Shown {
+        var rect: CGRect
+        var done: CGFloat
+        var alpha: CGFloat
+    }
+    private var shown: [Shown] = []
+    private var glide: Timer?
+    private var lastTick = Date()
+
+    private func retarget() {
+        if NSWorkspace.shared.accessibilityDisplayShouldReduceMotion {
+            shown = segments.map { Shown(rect: $0.rect, done: $0.done, alpha: 1) }
+            needsDisplay = true
+            return
+        }
+        for (index, segment) in segments.enumerated() {
+            if index < shown.count {
+                shown[index].done = segment.done
+            } else {
+                // A new highlight grows out of the last one, or fades in where it is if there was none.
+                shown.append(Shown(rect: shown.last?.rect ?? segment.rect, done: segment.done, alpha: shown.isEmpty ? 0 : 1))
+            }
+        }
+        needsDisplay = true
+        guard glide == nil, !shown.isEmpty else { return }
+        lastTick = Date()
+        let timer = Timer(timeInterval: 1.0 / 60, repeats: true) { [weak self] timer in
+            guard let self else { return timer.invalidate() }
+            MainActor.assumeIsolated { self.glideStep() }
+        }
+        RunLoop.main.add(timer, forMode: .common)
+        glide = timer
+    }
+
+    private func glideStep() {
+        let now = Date()
+        let dt = min(now.timeIntervalSince(lastTick), 0.05)
+        lastTick = now
+        let move = CGFloat(1 - exp(-dt / 0.06))
+        let fade = CGFloat(1 - exp(-dt / 0.09))
+        var settled = true
+        var kept: [Shown] = []
+        for (index, var item) in shown.enumerated() {
+            if index < segments.count {
+                let goal = segments[index].rect
+                let close = abs(goal.minX - item.rect.minX) < 0.0004 && abs(goal.minY - item.rect.minY) < 0.0004
+                    && abs(goal.width - item.rect.width) < 0.0004 && abs(goal.height - item.rect.height) < 0.0004
+                if close {
+                    item.rect = goal
+                } else {
+                    settled = false
+                    item.rect = CGRect(
+                        x: item.rect.minX + (goal.minX - item.rect.minX) * move, y: item.rect.minY + (goal.minY - item.rect.minY) * move,
+                        width: item.rect.width + (goal.width - item.rect.width) * move, height: item.rect.height + (goal.height - item.rect.height) * move
+                    )
+                }
+                item.alpha += (1 - item.alpha) * fade
+                if item.alpha < 0.995 { settled = false } else { item.alpha = 1 }
+            } else {
+                // A highlight that is no longer wanted fades away.
+                item.alpha -= CGFloat(dt / 0.18)
+                if item.alpha <= 0 { continue }
+                settled = false
+            }
+            kept.append(item)
+        }
+        shown = kept
+        needsDisplay = true
+        if settled {
+            glide?.invalidate()
+            glide = nil
+        }
+    }
 
     override func draw(_ dirtyRect: NSRect) {
         NSColor.white.withAlphaComponent(0.4).setStroke()
@@ -1127,22 +1381,22 @@ final class HighlightView: NSView {
         outline.lineWidth = 1.5
         outline.stroke()
         let accent = Palette.accent
-        for segment in segments where segment.rect.width > 0 {
+        for segment in shown where segment.rect.width > 0 {
             let area = NSRect(
                 x: segment.rect.minX * bounds.width - 3,
                 y: segment.rect.minY * bounds.height - 2,
                 width: segment.rect.width * bounds.width + 6,
                 height: segment.rect.height * bounds.height + 4
             )
-            accent.withAlphaComponent(0.2).setFill()
+            accent.withAlphaComponent(0.2 * segment.alpha).setFill()
             NSBezierPath(roundedRect: area, xRadius: 4, yRadius: 4).fill()
             guard segment.done > 0 else { continue }
             var spoken = area
             spoken.size.width *= segment.done
-            accent.withAlphaComponent(0.45).setFill()
+            accent.withAlphaComponent(0.45 * segment.alpha).setFill()
             NSBezierPath(roundedRect: spoken, xRadius: 4, yRadius: 4).fill()
             if segment.done < 1 {
-                accent.setFill()
+                accent.withAlphaComponent(segment.alpha).setFill()
                 NSRect(x: spoken.maxX - 1, y: area.minY, width: 2, height: area.height).fill()
             }
         }
@@ -1398,6 +1652,20 @@ final class Pet: NSObject {
         }
     }
 
+    /// Keeps Lumen where it was last put, instead of wandering the Dock or following the app being read.
+    var staysPut: Bool {
+        get { UserDefaults.standard.bool(forKey: "petStaysPut") }
+        set {
+            UserDefaults.standard.set(newValue, forKey: "petStaysPut")
+            guard newValue else { return }
+            goalX = nil
+            flight = nil
+            if motion == .walking { motion = .standing }
+            if motion == .flying { motion = .gliding }
+            if feet != .zero { UserDefaults.standard.set(Double(feet.x), forKey: "petHomeX") }
+        }
+    }
+
     var mood: PetMood {
         get { currentMood }
         set {
@@ -1426,7 +1694,11 @@ final class Pet: NSObject {
         }
         guard let panel, !panel.isVisible || panel.alphaValue < 1 else { return }
         let dock = self.dock()
-        if feet == .zero { feet = CGPoint(x: dock.range.lowerBound + (dock.range.upperBound - dock.range.lowerBound) * 0.3, y: dock.floor) }
+        if feet == .zero {
+            let home = UserDefaults.standard.object(forKey: "petHomeX") as? Double
+            let x = staysPut ? home.map { min(max(CGFloat($0), dock.range.lowerBound), dock.range.upperBound) } : nil
+            feet = CGPoint(x: x ?? dock.range.lowerBound + (dock.range.upperBound - dock.range.lowerBound) * 0.3, y: dock.floor)
+        }
         // Lumen flutters down onto the Dock, or simply appears when motion is reduced.
         if swooping && !reduceMotion {
             feet.y = dock.floor + 320
@@ -1479,7 +1751,7 @@ final class Pet: NSObject {
     func react(to status: String) {
         let moods: [(String, PetMood)] = [
             ("Reading", .reading), ("Answer", .talking), ("Paused", .paused), ("Waiting", .paused), ("Understanding", .thinking),
-            ("Preparing", .thinking), ("Thinking", .thinking), ("Jump", .jump), ("Following", .idle), ("Narrator", .happy),
+            ("Preparing", .thinking), ("Scrolling", .thinking), ("Thinking", .thinking), ("Jump", .jump), ("Following", .idle), ("Narrator", .happy),
         ]
         if let match = moods.first(where: { status.hasPrefix($0.0) }) { mood = match.1 }
     }
@@ -1591,6 +1863,7 @@ final class Pet: NSObject {
     private func drop() {
         goalX = nil
         flight = nil
+        if staysPut { UserDefaults.standard.set(Double(feet.x), forKey: "petHomeX") }
         motion = reduceMotion ? .standing : .gliding
         if reduceMotion { feet.y = dock().floor }
     }
@@ -1613,8 +1886,8 @@ final class Pet: NSObject {
 
         // Where Lumen wants to be.
         if speaking || currentMood == .paused {
-            if let app = readingApp(), let x = dock.icons[app] { goalX = x }
-        } else if currentMood == .idle, motion == .standing, !view.sleeping, !still, Date() > nextWander {
+            if !staysPut, let app = readingApp(), let x = dock.icons[app] { goalX = x }
+        } else if currentMood == .idle, motion == .standing, !view.sleeping, !still, !staysPut, Date() > nextWander {
             let span = dock.range.upperBound - dock.range.lowerBound
             var x = dock.range.lowerBound + CGFloat.random(in: 0...1) * span
             if abs(x - feet.x) < 90 { x = feet.x + (x < feet.x ? -140 : 140) }
@@ -1825,6 +2098,8 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
     private var statusLine: NSTextField?
     private var caption: NSTextField?
     private var progressLine: ProgressLine?
+    /// Which sentence of how many is being read, for the progress bar.
+    private var readingPlace = (index: 0, count: 1)
     private var controls: [NSButton] = []
     private var playButton: ControlButton?
     private var speedButton: ControlButton?
@@ -1916,6 +2191,7 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
         askHint.isEnabled = false
         menu.addItem(.separator())
         menu.addItem(withTitle: "Show Lumen", action: #selector(togglePet(_:)), keyEquivalent: "").state = pet.isEnabled ? .on : .off
+        menu.addItem(withTitle: "Keep Lumen in one place", action: #selector(togglePetStaysPut(_:)), keyEquivalent: "").state = pet.staysPut ? .on : .off
         menu.addItem(withTitle: "Replay welcome", action: #selector(welcome), keyEquivalent: "")
         if ClaudeCode.executable() != nil {
             menu.addItem(withTitle: "Richer voice with Claude (uses your Claude plan)", action: #selector(toggleClaudeDirection(_:)), keyEquivalent: "").state = usesClaude ? .on : .off
@@ -2125,6 +2401,11 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
             pet.mood = .happy
             pet.relax(after: 2.5)
         }
+    }
+
+    @objc private func togglePetStaysPut(_ sender: NSMenuItem) {
+        pet.staysPut.toggle()
+        sender.state = pet.staysPut ? .on : .off
     }
 
     @objc private func toggleClaudeDirection(_ sender: NSMenuItem) {
@@ -2995,6 +3276,8 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
                 emptyRounds += 1
             } else {
                 emptyRounds = 0
+                // Marks where reading will resume while the next part is being worked out.
+                if !scrolledByUser, let first = fresh.first { highlightView?.segments = [HighlightSegment(rect: first.box, done: 0)] }
                 try await narrate(fresh, purpose: purpose)
             }
             try await waitWhilePaused()
@@ -3007,13 +3290,27 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
             try Task.checkCancellation()
             try await waitUntilVisible()
             highlightView?.segments = []
-            await scrollDown(in: currentRect)
+            setStatus("Scrolling", "Moving on to the next part of the page.")
+            await scrollDown(in: currentRect, gentle: NSWorkspace.shared.accessibilityDisplayShouldReduceMotion)
             note("scrolled")
-            try await Task.sleep(for: .milliseconds(650))
+            try await waitForPageToSettle()
         }
         try await waitUntilVisible()
         let remaining = unreadLines(in: readableLines(try await recognizeLines(in: await capture(currentRect))), seen: seen)
         if remaining.contains(where: { normalized($0.text).count >= 16 }) { try await narrate(remaining, purpose: purpose) }
+    }
+
+    /// After a scroll, waits until the page has stopped moving, so the next look at the screen is sharp. Some pages keep
+    /// gliding for a moment, and some never stop changing, so it gives up after about a second.
+    private func waitForPageToSettle() async throws {
+        try await Task.sleep(for: .milliseconds(120))
+        var previous = try await capture(currentRect).dataProvider?.data as Data?
+        for _ in 0..<8 {
+            try await Task.sleep(for: .milliseconds(100))
+            let now = try await capture(currentRect).dataProvider?.data as Data?
+            if now != nil, now == previous { return }
+            previous = now
+        }
     }
 
     /// Watches for new text and speaks finished sentences while the rest of a reply is still arriving.
@@ -3161,7 +3458,10 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
                 let helper = followNew ? spareHelper : nil
                 if followNew { spareHelper = try? WarmClaude(system: Planner.system, schema: Planner.schema) }
                 let style = readingMood == "Auto" ? "" : " Read it in a \(readingMood.lowercased()) style."
-                plan = try await Planner.plan(units: items, purpose: purpose + style, alreadyRead: alreadyRead, following: followNew, rightSide: followNew ? rightSide : [], helper: helper)
+                let tableRows = Dictionary(uniqueKeysWithValues: items.enumerated().compactMap { index, unit in
+                    unit.spans.first.flatMap { lines[$0.line].tableRow ? (index, $0.line) : nil }
+                })
+                plan = try await Planner.plan(units: items, purpose: purpose + style, alreadyRead: alreadyRead, following: followNew, rightSide: followNew ? rightSide : [], tableRows: tableRows, helper: helper)
             } else {
                 plan = LocalDirector.plan(units: items, purpose: purpose, mood: readingMood, rightSide: rightSide, following: followNew)
             }
@@ -3196,7 +3496,8 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
             }
             let item = items[index]
             setStatus("Reading  \(index + 1) of \(items.count)", item.text)
-            progressLine?.fraction = CGFloat(index + 1) / CGFloat(items.count)
+            readingPlace = (index, items.count)
+            progressLine?.fraction = CGFloat(index) / CGFloat(items.count)
             let url = try await audio[index]!.value
             if rescan { return }
             if CommandLine.arguments.contains("--log-spoken") { note("TEST spoke: \(item.text)") }
@@ -3208,7 +3509,15 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
                 continue
             }
             seen += item.spans.map { lines[$0.line].text }
-            try await Task.sleep(for: .seconds(max(item.pauseAfter, item.delivery.settings.pause) / Double(speed)))
+            // No long pause after the last sentence of a screen, since the page scrolls on right away.
+            let isLast = index == items.count - 1
+            let full = max(item.pauseAfter, item.delivery.settings.pause) / Double(speed)
+            let rest = isLast ? min(full, 0.15) : full
+            // The highlight starts gliding to the next sentence just before it is spoken, so the eye is already there.
+            let lead = isLast ? 0 : min(0.18, rest * 0.6)
+            try await Task.sleep(for: .seconds(rest - lead))
+            if lead > 0, jump == 0, !isPaused { highlight(items[index + 1], lines: lines, progress: 0) }
+            try await Task.sleep(for: .seconds(lead))
             index = max(0, index + (jump == 0 ? 1 : jump))
             jump = 0
         }
@@ -3276,10 +3585,13 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
         sound.prepareToPlay()
         player = sound
         highlight(item, lines: lines, progress: 0)
-        let timer = Timer(timeInterval: 1.0 / 30, repeats: true) { [weak self, weak sound] _ in
+        let timer = Timer(timeInterval: 1.0 / 60, repeats: true) { [weak self, weak sound] _ in
             MainActor.assumeIsolated {
                 guard let self, let sound, sound.duration > 0 else { return }
-                self.highlight(item, lines: lines, progress: sound.currentTime / sound.duration)
+                let progress = sound.currentTime / sound.duration
+                self.highlight(item, lines: lines, progress: progress)
+                // The bar creeps along with the voice, instead of stepping once per sentence.
+                self.progressLine?.fraction = (CGFloat(self.readingPlace.index) + CGFloat(progress)) / CGFloat(max(self.readingPlace.count, 1))
             }
         }
         RunLoop.main.add(timer, forMode: .common)
@@ -3354,7 +3666,17 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
     private func setStatus(_ status: String, _ text: String) {
         pet.react(to: status)
         statusLine?.stringValue = status
-        caption?.stringValue = text
+        if let caption, caption.stringValue != text {
+            caption.stringValue = text
+            // The new line fades in, so the words change gently rather than flipping.
+            if !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion {
+                caption.alphaValue = 0.3
+                NSAnimationContext.runAnimationGroup { context in
+                    context.duration = 0.25
+                    caption.animator().alphaValue = 1
+                }
+            }
+        }
         caption?.toolTip = text
     }
 
@@ -3640,6 +3962,53 @@ func runSelfTest() -> Int32 {
     check("reads a spoken answer and its sources", parsed?.sources.first?.url == "https://www.python.org/downloads/")
     check("opens ordinary web sources", safeSourceURL("https://www.python.org/downloads/") != nil)
     check("refuses unsafe source links", safeSourceURL("file:///etc/passwd") == nil && safeSourceURL("javascript:alert(1)") == nil)
+
+    func cell(_ text: String, x: CGFloat, top: CGFloat, width: CGFloat = 0.12) -> ScreenLine {
+        ScreenLine(text: text, box: CGRect(x: x, y: top - 0.02, width: width, height: 0.02))
+    }
+    // The recognizer lists a table column by column, so that is the order used here.
+    let columnByColumn = [
+        cell("Our plans compare as follows:", x: 0.1, top: 0.9, width: 0.6),
+        cell("Plan", x: 0.1, top: 0.8), cell("Basic", x: 0.1, top: 0.7), cell("Pro", x: 0.1, top: 0.6), cell("Team", x: 0.1, top: 0.5),
+        cell("Price", x: 0.35, top: 0.8), cell("10 dollars", x: 0.35, top: 0.7), cell("20 dollars", x: 0.35, top: 0.6),
+        cell("per month", x: 0.35, top: 0.575), cell("40 dollars", x: 0.35, top: 0.5),
+        cell("Limit", x: 0.6, top: 0.8), cell("5 users", x: 0.6, top: 0.7), cell("50 users", x: 0.6, top: 0.6), cell("500 users", x: 0.6, top: 0.5),
+        cell("Pick the plan that fits.", x: 0.1, top: 0.35, width: 0.5),
+    ]
+    let rebuilt = tableAware(columnByColumn)
+    check("reads a table row by row, headers named", rebuilt.map(\.text) == [
+        "Our plans compare as follows:", "Table with columns Plan, Price, and Limit.",
+        "Basic. Price: 10 dollars. Limit: 5 users.", "Pro. Price: 20 dollars per month. Limit: 50 users.",
+        "Team. Price: 40 dollars. Limit: 500 users.", "Pick the plan that fits.",
+    ])
+    check("marks the rebuilt rows as table rows", rebuilt.map(\.tableRow) == [false, true, true, true, true, false])
+    check("reads each table row as its own paragraph", paragraphRanges(rebuilt, in: 1..<5).count == 4)
+    let prose = (0..<12).map { cell("A line of ordinary text number \($0).", x: 0.1, top: 0.9 - CGFloat($0) * 0.03, width: 0.7) }
+    check("leaves ordinary text alone", tableAware(prose) == prose)
+    let pairs = (0..<6).flatMap { [cell("Term \($0)", x: 0.1, top: 0.9 - CGFloat($0) * 0.1), cell("Its meaning \($0)", x: 0.4, top: 0.9 - CGFloat($0) * 0.1)] }
+    check("leaves a two-column list alone", tableAware(pairs) == pairs)
+    check("does not change a table twice", tableAware(rebuilt) == rebuilt)
+    let glide = stride(from: 0.0, through: 1.0, by: 0.05).map(easedProgress)
+    check("the scroll glide starts at 0 and ends at 1", glide.first == 0 && glide.last == 1)
+    check("the scroll glide never goes backwards", zip(glide, glide.dropFirst()).allSatisfy { $0 <= $1 })
+    check("the scroll glide starts and ends gently", glide[1] < 0.01 && glide[19] > 0.99 && glide[10] == 0.5)
+    if !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion {
+        let marker = HighlightView(frame: NSRect(x: 0, y: 0, width: 400, height: 200))
+        // How strongly the highlight tints the middle of where it should be, from 0 to 1.
+        func tint() -> CGFloat {
+            guard let image = marker.bitmapImageRepForCachingDisplay(in: marker.bounds) else { return -1 }
+            marker.cacheDisplay(in: marker.bounds, to: image)
+            let scale = CGFloat(image.pixelsWide) / marker.bounds.width
+            return image.colorAt(x: Int(240 * scale), y: Int(90 * scale))?.alphaComponent ?? -1
+        }
+        marker.segments = [HighlightSegment(rect: CGRect(x: 0.5, y: 0.5, width: 0.2, height: 0.1), done: 0)]
+        check("a highlight fades in instead of popping", tint() < 0.05)
+        RunLoop.main.run(until: Date().addingTimeInterval(0.8))
+        check("the highlight settles on its place", tint() > 0.15)
+        marker.segments = []
+        RunLoop.main.run(until: Date().addingTimeInterval(0.5))
+        check("a cleared highlight fades away", tint() < 0.02)
+    }
     print(failures == 0 ? "All self-tests passed" : "\(failures) self-tests failed")
     return failures == 0 ? 0 : 1
 }
