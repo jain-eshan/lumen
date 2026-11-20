@@ -13,6 +13,8 @@ struct ScreenLine: Equatable {
     var touchesTop = false
     var touchesBottom = false
     var confidence: Float = 1
+    /// True for a line made from one whole row of a table by `tableAware`.
+    var tableRow = false
 }
 
 /// The characters of one screen line covered by a spoken sentence.
@@ -143,6 +145,164 @@ func endsThought(_ text: String) -> Bool {
     return text.trimmingCharacters(in: closing).last.map { ".!?:;".contains($0) } ?? false
 }
 
+// MARK: Tables begin
+
+/// The text recognizer returns a table one column at a time, which reads as nonsense. This finds a table by how its
+/// cells line up, then replaces its lines with one line per row: the row's label, then "Header: value" for each other column.
+func tableAware(_ lines: [ScreenLine]) -> [ScreenLine] {
+    let sized = lines.indices.filter { lines[$0].box.width > 0 && !lines[$0].tableRow }
+    guard sized.count >= 9 else { return lines }
+
+    // Columns are lines starting at the same left edge. Lines in a column are listed top to bottom.
+    var columnOf: [Int: Int] = [:]
+    var edges: [CGFloat] = []
+    var lastEdge: CGFloat = -1
+    for index in sized.sorted(by: { lines[$0].box.minX < lines[$1].box.minX }) {
+        let x = lines[index].box.minX
+        if x - lastEdge > 0.006 { edges.append(x) }
+        lastEdge = x
+        columnOf[index] = edges.count - 1
+    }
+    let byTop = sized.sorted { lines[$0].box.maxY > lines[$1].box.maxY }
+    var byColumn: [Int: [Int]] = [:]
+    for index in byTop { byColumn[columnOf[index]!, default: []].append(index) }
+
+    /// A line sitting right under another in its column is a wrapped cell, not a new row.
+    func tight(_ above: Int, _ below: Int) -> Bool {
+        lines[above].box.minY - lines[below].box.maxY <= 0.9 * max(lines[above].box.height, lines[below].box.height)
+    }
+    var wraps = Set<Int>()
+    for column in byColumn.values {
+        for (above, below) in zip(column, column.dropFirst()) where tight(above, below) { wraps.insert(below) }
+    }
+
+    // Lines whose tops match form a candidate row. Three or more in a row of columns, repeated, is a table.
+    let typical = sized.map { lines[$0].box.height }.sorted()[sized.count / 2]
+    var groups: [[Int]] = []
+    for index in byTop {
+        if let previous = groups.last?.last, lines[previous].box.maxY - lines[index].box.maxY <= 0.35 * typical {
+            groups[groups.count - 1].append(index)
+        } else {
+            groups.append([index])
+        }
+    }
+    let starts: [[Int: Int]] = groups
+        .filter { group in group.filter { wraps.contains($0) }.count * 2 < group.count }
+        .map { group in Dictionary(group.map { (columnOf[$0]!, $0) }, uniquingKeysWith: { first, _ in first }) }
+        .filter { $0.count >= 3 }
+
+    // The table is the set of columns that lines up with the most cells over three or more rows. Columns far apart,
+    // such as a sidebar and a menu on the other side of the page, do not count.
+    func close(_ columns: [Int], _ members: [Int]) -> Bool {
+        zip(columns, columns.dropFirst()).allSatisfy { left, right in
+            let gaps = members.compactMap { row in starts[row][left].map { edges[right] - lines[$0].box.maxX } }.sorted()
+            return gaps.isEmpty || gaps[gaps.count / 2] <= 0.25
+        }
+    }
+    let startColumns = starts.map { Set($0.keys) }
+    var remaining = Array(starts.indices)
+    var tables: [(rows: [[Int: Int]], columns: [Int])] = []
+    while starts.count <= 150 {
+        var best: (score: Int, columns: [Int], rows: [Int])?
+        var tried = Set<[Int]>()
+        for (offset, a) in remaining.enumerated() {
+            for b in remaining[(offset + 1)...] {
+                var columns = startColumns[a].intersection(startColumns[b]).sorted()
+                guard columns.count >= 3, tried.insert(columns).inserted else { continue }
+                // A real column shows up in most rows; one that lines up by chance does not.
+                var rows: [Int] = []
+                while columns.count >= 3 {
+                    rows = remaining.filter { startColumns[$0].intersection(columns).count * 10 >= columns.count * 7 }
+                    let kept = columns.filter { column in rows.filter { startColumns[$0].contains(column) }.count * 10 >= rows.count * 8 }
+                    if kept.count == columns.count { break }
+                    columns = kept
+                }
+                guard columns.count >= 3, rows.count >= 3, close(columns, rows) else { continue }
+                let score = rows.reduce(0) { $0 + startColumns[$1].intersection(columns).count }
+                if score > (best?.score ?? 0) { best = (score, columns, rows) }
+            }
+        }
+        guard let table = best else { break }
+        tables.append((table.rows.map { starts[$0] }, table.columns))
+        remaining.removeAll { table.rows.contains($0) }
+    }
+    guard !tables.isEmpty else { return lines }
+
+    func union(_ indexes: [Int]) -> CGRect { indexes.dropFirst().reduce(lines[indexes[0]].box) { $0.union(lines[$1].box) } }
+    func joined(_ cell: [Int]) -> String {
+        cell.reduce("") { text, index in
+            let next = lines[index].text.trimmingCharacters(in: .whitespaces)
+            return text.hasSuffix("-") ? text + next : (text.isEmpty ? next : text + " " + next)
+        }
+    }
+    func ended(_ text: String) -> String {
+        let plain = text.trimmingCharacters(in: CharacterSet(charactersIn: " ,;:"))
+        return plain.isEmpty ? "" : (".!?".contains(plain.last!) ? plain : plain + ".")
+    }
+
+    var consumed = Set<Int>()
+    var inserts: [Int: [ScreenLine]] = [:]
+    for table in tables {
+        var rows = table.rows.map { row in table.columns.map { column in row[column].map { [$0] } ?? [] } }
+        var startAt: [Int: Int] = [:]
+        for (row, cells) in rows.enumerated() { for cell in cells { if let index = cell.first { startAt[index] = row } } }
+
+        // Wrapped lines under a cell belong to it, unless they run into the next column or past the cell's width.
+        for (position, column) in table.columns.enumerated() {
+            let widest = rows.compactMap { $0[position].first }.map { lines[$0].box.width }.max() ?? 0
+            let limit = position + 1 < table.columns.count ? edges[table.columns[position + 1]] - 0.004 : edges[column] + widest * 1.3
+            var currentRow: Int?
+            var previous: Int?
+            for index in byColumn[column] ?? [] {
+                if let start = startAt[index] {
+                    currentRow = start
+                    previous = index
+                } else if let row = currentRow, let above = previous, tight(above, index), lines[index].box.maxX <= limit {
+                    rows[row][position].append(index)
+                    previous = index
+                } else {
+                    currentRow = nil
+                    previous = nil
+                }
+            }
+        }
+
+        let cells = rows.map { $0.map(joined) }
+        let headed = cells[0].filter { $0.contains { $0.isNumber } }.count * 2 <= cells[0].filter { !$0.isEmpty }.count
+        var made: [ScreenLine] = []
+        for (row, values) in cells.enumerated() {
+            let sentence: String
+            if headed && row == 0 {
+                let names = values.filter { !$0.isEmpty }
+                sentence = "Table with columns " + (names.count > 1 ? names.dropLast().joined(separator: ", ") + ", and " + names.last! : names.joined()) + "."
+            } else if headed {
+                let pairs = values.indices.dropFirst().filter { !values[$0].isEmpty }.map { (cells[0][$0].isEmpty ? "" : cells[0][$0] + ": ") + values[$0] }
+                sentence = ([values[0]] + pairs).map(ended).filter { !$0.isEmpty }.joined(separator: " ")
+            } else {
+                sentence = values.map(ended).filter { !$0.isEmpty }.joined(separator: " ")
+            }
+            let covered = rows[row].flatMap { $0 }
+            guard !sentence.isEmpty, !covered.isEmpty else { continue }
+            made.append(ScreenLine(
+                text: sentence, box: union(covered),
+                touchesTop: covered.contains { lines[$0].touchesTop }, touchesBottom: covered.contains { lines[$0].touchesBottom },
+                confidence: covered.map { lines[$0].confidence }.min() ?? 1, tableRow: true
+            ))
+            consumed.formUnion(covered)
+        }
+        if let at = rows.flatMap({ $0.flatMap { $0 } }).min() { inserts[at] = made }
+    }
+
+    var result: [ScreenLine] = []
+    for index in lines.indices {
+        result += inserts[index] ?? []
+        if !consumed.contains(index) { result.append(lines[index]) }
+    }
+    return result
+}
+
+// MARK: Tables end
+
 /// Chat apps place the user's own messages to the right of the column holding the replies.
 func rightSideUnits(_ units: [Utterance], lines: [ScreenLine], screen: [ScreenLine]) -> Set<Int> {
     let edges = screen.filter { $0.box.width > 0 }.map(\.box.minX).sorted()
@@ -170,7 +330,7 @@ func paragraphRanges(_ lines: [ScreenLine], in range: Range<Int>) -> [Range<Int>
         let height = max(above.box.height, below.box.height)
         let wideGap = height > 0 && above.box.minY - below.box.maxY > height * 0.9
         let endedEarly = widest > 0 && above.box.width < widest * 0.72 && ".!?:".contains(above.text.last ?? " ")
-        if wideGap || endedEarly || below.box.minY > above.box.minY || speakerLabelLength(in: below.text) > 0 {
+        if wideGap || endedEarly || below.box.minY > above.box.minY || speakerLabelLength(in: below.text) > 0 || above.tableRow || below.tableRow {
             paragraphs.append(start..<index)
             start = index
         }
@@ -458,11 +618,11 @@ func recognizeLinesNow(in image: CGImage, using request: VNRecognizeTextRequest 
     request.recognitionLevel = .accurate
     request.usesLanguageCorrection = true
     try VNImageRequestHandler(cgImage: image).perform([request])
-    return (request.results ?? []).compactMap { observation in
+    return tableAware((request.results ?? []).compactMap { observation in
         guard let candidate = observation.topCandidates(1).first else { return nil }
         let box = observation.boundingBox
         return ScreenLine(text: candidate.string, box: box, touchesTop: box.maxY > 0.985, touchesBottom: box.minY < 0.015, confidence: candidate.confidence)
-    }
+    })
 }
 
 // MARK: - Claude reading plan
@@ -730,8 +890,12 @@ enum Planner {
     stay restrained for technical text. Set speaker to woman or man only for spoken dialogue between characters in \
     a story, otherwise narrator. List in emphasis at most two single words a good reader would stress, usually none \
     or one. Set through to the same number as unit unless a rewrite covers several units. Set say to null so the \
-    unit is read word for word. Set say only for tables, chart labels or other text that cannot be read naturally, \
-    using only values in those units. If no units match the purpose, return an empty items list. Set material to \
+    unit is read word for word. Set say only for chart labels or other text that cannot be read naturally, \
+    using only values in those units. Units tagged [table row N] are the rows of a table, already in reading order, written as a \
+    label followed by Header: value pairs. A unit beginning Table with columns names the headers, so leave its say null. For every \
+    other row, set unit to its first unit and through to its last unit, and set say to one or two natural spoken sentences that \
+    carry every value in the row and use the headers only for their meaning, so Plan A. Price: 10 dollars. Limit: 5 users. becomes \
+    Plan A costs 10 dollars and allows 5 users. Never read out the headers as a list, and use only values that appear in the row. If no units match the purpose, return an empty items list. Set material to \
     case, news, novel or other.
     """
     static let schema = #"{"type":"object","additionalProperties":false,"required":["material","items"],"properties":{"material":{"type":"string","enum":["case","news","novel","other"]},"items":{"type":"array","items":{"type":"object","additionalProperties":false,"required":["unit","through","mood","speaker","emphasis","say"],"properties":{"unit":{"type":"integer"},"through":{"type":"integer"},"mood":{"type":"string","enum":["neutral","measured","building","turning","doubtful","warm","tender","somber","quiet"]},"speaker":{"type":"string","enum":["narrator","woman","man"]},"emphasis":{"type":"array","items":{"type":"string"}},"say":{"anyOf":[{"type":"string"},{"type":"null"}]}}}}}}"#
@@ -740,8 +904,8 @@ enum Planner {
         try JSONDecoder().decode(ReadingPlan.self, from: ClaudeCode.structuredOutput(data))
     }
 
-    static func plan(units: [Utterance], purpose: String, alreadyRead: [String], following: Bool, rightSide: Set<Int> = [], helper: WarmClaude? = nil) async throws -> ReadingPlan {
-        let numbered = units.enumerated().map { "\($0.offset)\(rightSide.contains($0.offset) ? " [right side]" : ""): \($0.element.text)" }.joined(separator: "\n")
+    static func plan(units: [Utterance], purpose: String, alreadyRead: [String], following: Bool, rightSide: Set<Int> = [], tableRows: [Int: Int] = [:], helper: WarmClaude? = nil) async throws -> ReadingPlan {
+        let numbered = units.enumerated().map { "\($0.offset)\(rightSide.contains($0.offset) ? " [right side]" : "")\(tableRows[$0.offset].map { " [table row \($0)]" } ?? ""): \($0.element.text)" }.joined(separator: "\n")
         let request = purpose.isEmpty ? "Read everything meaningful in the selected area." : purpose
         let goal = following ? request + " Do not read the user's own messages or anything being typed in a message box." : request
         let prompt = """
@@ -3161,7 +3325,10 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
                 let helper = followNew ? spareHelper : nil
                 if followNew { spareHelper = try? WarmClaude(system: Planner.system, schema: Planner.schema) }
                 let style = readingMood == "Auto" ? "" : " Read it in a \(readingMood.lowercased()) style."
-                plan = try await Planner.plan(units: items, purpose: purpose + style, alreadyRead: alreadyRead, following: followNew, rightSide: followNew ? rightSide : [], helper: helper)
+                let tableRows = Dictionary(uniqueKeysWithValues: items.enumerated().compactMap { index, unit in
+                    unit.spans.first.flatMap { lines[$0.line].tableRow ? (index, $0.line) : nil }
+                })
+                plan = try await Planner.plan(units: items, purpose: purpose + style, alreadyRead: alreadyRead, following: followNew, rightSide: followNew ? rightSide : [], tableRows: tableRows, helper: helper)
             } else {
                 plan = LocalDirector.plan(units: items, purpose: purpose, mood: readingMood, rightSide: rightSide, following: followNew)
             }
@@ -3640,6 +3807,32 @@ func runSelfTest() -> Int32 {
     check("reads a spoken answer and its sources", parsed?.sources.first?.url == "https://www.python.org/downloads/")
     check("opens ordinary web sources", safeSourceURL("https://www.python.org/downloads/") != nil)
     check("refuses unsafe source links", safeSourceURL("file:///etc/passwd") == nil && safeSourceURL("javascript:alert(1)") == nil)
+
+    func cell(_ text: String, x: CGFloat, top: CGFloat, width: CGFloat = 0.12) -> ScreenLine {
+        ScreenLine(text: text, box: CGRect(x: x, y: top - 0.02, width: width, height: 0.02))
+    }
+    // The recognizer lists a table column by column, so that is the order used here.
+    let columnByColumn = [
+        cell("Our plans compare as follows:", x: 0.1, top: 0.9, width: 0.6),
+        cell("Plan", x: 0.1, top: 0.8), cell("Basic", x: 0.1, top: 0.7), cell("Pro", x: 0.1, top: 0.6), cell("Team", x: 0.1, top: 0.5),
+        cell("Price", x: 0.35, top: 0.8), cell("10 dollars", x: 0.35, top: 0.7), cell("20 dollars", x: 0.35, top: 0.6),
+        cell("per month", x: 0.35, top: 0.575), cell("40 dollars", x: 0.35, top: 0.5),
+        cell("Limit", x: 0.6, top: 0.8), cell("5 users", x: 0.6, top: 0.7), cell("50 users", x: 0.6, top: 0.6), cell("500 users", x: 0.6, top: 0.5),
+        cell("Pick the plan that fits.", x: 0.1, top: 0.35, width: 0.5),
+    ]
+    let rebuilt = tableAware(columnByColumn)
+    check("reads a table row by row, headers named", rebuilt.map(\.text) == [
+        "Our plans compare as follows:", "Table with columns Plan, Price, and Limit.",
+        "Basic. Price: 10 dollars. Limit: 5 users.", "Pro. Price: 20 dollars per month. Limit: 50 users.",
+        "Team. Price: 40 dollars. Limit: 500 users.", "Pick the plan that fits.",
+    ])
+    check("marks the rebuilt rows as table rows", rebuilt.map(\.tableRow) == [false, true, true, true, true, false])
+    check("reads each table row as its own paragraph", paragraphRanges(rebuilt, in: 1..<5).count == 4)
+    let prose = (0..<12).map { cell("A line of ordinary text number \($0).", x: 0.1, top: 0.9 - CGFloat($0) * 0.03, width: 0.7) }
+    check("leaves ordinary text alone", tableAware(prose) == prose)
+    let pairs = (0..<6).flatMap { [cell("Term \($0)", x: 0.1, top: 0.9 - CGFloat($0) * 0.1), cell("Its meaning \($0)", x: 0.4, top: 0.9 - CGFloat($0) * 0.1)] }
+    check("leaves a two-column list alone", tableAware(pairs) == pairs)
+    check("does not change a table twice", tableAware(rebuilt) == rebuilt)
     print(failures == 0 ? "All self-tests passed" : "\(failures) self-tests failed")
     return failures == 0 ? 0 : 1
 }
