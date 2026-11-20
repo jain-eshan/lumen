@@ -265,8 +265,12 @@ enum Planner {
     stay restrained for technical text. Set speaker to woman or man only for spoken dialogue between characters in \
     a story, otherwise narrator. List in emphasis at most two single words a good reader would stress, usually none \
     or one. Set through to the same number as unit unless a rewrite covers several units. Set say to null so the \
-    unit is read word for word. Set say only for tables, chart labels or other text that cannot be read naturally, \
-    using only values in those units. If no units match the purpose, return an empty items list. Set material to \
+    unit is read word for word. Set say only for chart labels or other text that cannot be read naturally, \
+    using only values in those units. Units tagged [table row N] are the rows of a table, already in reading order, written as a \
+    label followed by Header: value pairs. A unit beginning Table with columns names the headers, so leave its say null. For every \
+    other row, set unit to its first unit and through to its last unit, and set say to one or two natural spoken sentences that \
+    carry every value in the row and use the headers only for their meaning, so Plan A. Price: 10 dollars. Limit: 5 users. becomes \
+    Plan A costs 10 dollars and allows 5 users. Never read out the headers as a list, and use only values that appear in the row. If no units match the purpose, return an empty items list. Set material to \
     case, news, novel or other.
     """
     static let schema = #"{"type":"object","additionalProperties":false,"required":["material","items"],"properties":{"material":{"type":"string","enum":["case","news","novel","other"]},"items":{"type":"array","items":{"type":"object","additionalProperties":false,"required":["unit","through","mood","speaker","emphasis","say"],"properties":{"unit":{"type":"integer"},"through":{"type":"integer"},"mood":{"type":"string","enum":["neutral","measured","building","turning","doubtful","warm","tender","somber","quiet"]},"speaker":{"type":"string","enum":["narrator","woman","man"]},"emphasis":{"type":"array","items":{"type":"string"}},"say":{"anyOf":[{"type":"string"},{"type":"null"}]}}}}}}"#
@@ -275,8 +279,8 @@ enum Planner {
         try JSONDecoder().decode(ReadingPlan.self, from: ClaudeCode.structuredOutput(data))
     }
 
-    static func plan(units: [Utterance], purpose: String, alreadyRead: [String], following: Bool, rightSide: Set<Int> = [], helper: WarmClaude? = nil) async throws -> ReadingPlan {
-        let numbered = units.enumerated().map { "\($0.offset)\(rightSide.contains($0.offset) ? " [right side]" : ""): \($0.element.text)" }.joined(separator: "\n")
+    static func plan(units: [Utterance], purpose: String, alreadyRead: [String], following: Bool, rightSide: Set<Int> = [], tableRows: [Int: Int] = [:], helper: WarmClaude? = nil) async throws -> ReadingPlan {
+        let numbered = units.enumerated().map { "\($0.offset)\(rightSide.contains($0.offset) ? " [right side]" : "")\(tableRows[$0.offset].map { " [table row \($0)]" } ?? ""): \($0.element.text)" }.joined(separator: "\n")
         let request = purpose.isEmpty ? "Read everything meaningful in the selected area." : purpose
         let goal = following ? request + " Do not read the user's own messages or anything being typed in a message box." : request
         let prompt = """

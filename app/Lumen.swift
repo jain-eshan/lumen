@@ -194,6 +194,20 @@ final class Pet: NSObject {
         }
     }
 
+    /// Keeps Lumen where it was last put, instead of wandering the Dock or following the app being read.
+    var staysPut: Bool {
+        get { UserDefaults.standard.bool(forKey: "petStaysPut") }
+        set {
+            UserDefaults.standard.set(newValue, forKey: "petStaysPut")
+            guard newValue else { return }
+            goalX = nil
+            flight = nil
+            if motion == .walking { motion = .standing }
+            if motion == .flying { motion = .gliding }
+            if feet != .zero { UserDefaults.standard.set(Double(feet.x), forKey: "petHomeX") }
+        }
+    }
+
     var mood: PetMood {
         get { currentMood }
         set {
@@ -219,7 +233,11 @@ final class Pet: NSObject {
         }
         guard let panel, !panel.isVisible || panel.alphaValue < 1 else { return }
         let dock = self.dock()
-        if feet == .zero { feet = CGPoint(x: dock.range.lowerBound + (dock.range.upperBound - dock.range.lowerBound) * 0.3, y: dock.floor) }
+        if feet == .zero {
+            let home = UserDefaults.standard.object(forKey: "petHomeX") as? Double
+            let x = staysPut ? home.map { min(max(CGFloat($0), dock.range.lowerBound), dock.range.upperBound) } : nil
+            feet = CGPoint(x: x ?? dock.range.lowerBound + (dock.range.upperBound - dock.range.lowerBound) * 0.3, y: dock.floor)
+        }
         // Lumen flutters down onto the Dock, or simply appears when motion is reduced.
         if swooping && !reduceMotion {
             feet.y = dock.floor + 320
@@ -272,7 +290,7 @@ final class Pet: NSObject {
     func react(to status: String) {
         let moods: [(String, PetMood)] = [
             ("Reading", .reading), ("Answer", .talking), ("Paused", .paused), ("Waiting", .paused), ("Understanding", .thinking),
-            ("Preparing", .thinking), ("Thinking", .thinking), ("Jump", .jump), ("Following", .idle), ("Narrator", .happy),
+            ("Preparing", .thinking), ("Scrolling", .thinking), ("Thinking", .thinking), ("Jump", .jump), ("Following", .idle), ("Narrator", .happy),
         ]
         if let match = moods.first(where: { status.hasPrefix($0.0) }) { mood = match.1 }
     }
@@ -384,6 +402,7 @@ final class Pet: NSObject {
     private func drop() {
         goalX = nil
         flight = nil
+        if staysPut { UserDefaults.standard.set(Double(feet.x), forKey: "petHomeX") }
         motion = reduceMotion ? .standing : .gliding
         if reduceMotion { feet.y = dock().floor }
     }
@@ -406,8 +425,8 @@ final class Pet: NSObject {
 
         // Where Lumen wants to be.
         if speaking || currentMood == .paused {
-            if let app = readingApp(), let x = dock.icons[app] { goalX = x }
-        } else if currentMood == .idle, motion == .standing, !view.sleeping, !still, Date() > nextWander {
+            if !staysPut, let app = readingApp(), let x = dock.icons[app] { goalX = x }
+        } else if currentMood == .idle, motion == .standing, !view.sleeping, !still, !staysPut, Date() > nextWander {
             let span = dock.range.upperBound - dock.range.lowerBound
             var x = dock.range.lowerBound + CGFloat.random(in: 0...1) * span
             if abs(x - feet.x) < 90 { x = feet.x + (x < feet.x ? -140 : 140) }

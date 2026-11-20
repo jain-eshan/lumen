@@ -26,6 +26,8 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
     private var statusLine: NSTextField?
     private var caption: NSTextField?
     private var progressLine: ProgressLine?
+    /// Which sentence of how many is being read, for the progress bar.
+    private var readingPlace = (index: 0, count: 1)
     private var controls: [NSButton] = []
     private var playButton: ControlButton?
     private var speedButton: ControlButton?
@@ -117,6 +119,7 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
         askHint.isEnabled = false
         menu.addItem(.separator())
         menu.addItem(withTitle: "Show Lumen", action: #selector(togglePet(_:)), keyEquivalent: "").state = pet.isEnabled ? .on : .off
+        menu.addItem(withTitle: "Keep Lumen in one place", action: #selector(togglePetStaysPut(_:)), keyEquivalent: "").state = pet.staysPut ? .on : .off
         menu.addItem(withTitle: "Replay welcome", action: #selector(welcome), keyEquivalent: "")
         if ClaudeCode.executable() != nil {
             menu.addItem(withTitle: "Richer voice with Claude (uses your Claude plan)", action: #selector(toggleClaudeDirection(_:)), keyEquivalent: "").state = usesClaude ? .on : .off
@@ -326,6 +329,11 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
             pet.mood = .happy
             pet.relax(after: 2.5)
         }
+    }
+
+    @objc private func togglePetStaysPut(_ sender: NSMenuItem) {
+        pet.staysPut.toggle()
+        sender.state = pet.staysPut ? .on : .off
     }
 
     @objc private func toggleClaudeDirection(_ sender: NSMenuItem) {
@@ -1189,6 +1197,8 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
                 emptyRounds += 1
             } else {
                 emptyRounds = 0
+                // Marks where reading will resume while the next part is being worked out.
+                if !scrolledByUser, let first = fresh.first { highlightView?.segments = [HighlightSegment(rect: first.box, done: 0)] }
                 try await narrate(fresh, purpose: purpose)
             }
             try await waitWhilePaused()
@@ -1201,13 +1211,27 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
             try Task.checkCancellation()
             try await waitUntilVisible()
             highlightView?.segments = []
-            await scrollDown(in: currentRect)
+            setStatus("Scrolling", "Moving on to the next part of the page.")
+            await scrollDown(in: currentRect, gentle: NSWorkspace.shared.accessibilityDisplayShouldReduceMotion)
             note("scrolled")
-            try await Task.sleep(for: .milliseconds(650))
+            try await waitForPageToSettle()
         }
         try await waitUntilVisible()
         let remaining = unreadLines(in: readableLines(try await recognizeLines(in: await capture(currentRect))), seen: seen)
         if remaining.contains(where: { normalized($0.text).count >= 16 }) { try await narrate(remaining, purpose: purpose) }
+    }
+
+    /// After a scroll, waits until the page has stopped moving, so the next look at the screen is sharp. Some pages keep
+    /// gliding for a moment, and some never stop changing, so it gives up after about a second.
+    private func waitForPageToSettle() async throws {
+        try await Task.sleep(for: .milliseconds(120))
+        var previous = try await capture(currentRect).dataProvider?.data as Data?
+        for _ in 0..<8 {
+            try await Task.sleep(for: .milliseconds(100))
+            let now = try await capture(currentRect).dataProvider?.data as Data?
+            if now != nil, now == previous { return }
+            previous = now
+        }
     }
 
     /// Watches for new text and speaks finished sentences while the rest of a reply is still arriving.
@@ -1363,7 +1387,10 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
                 let helper = followNew ? spareHelper : nil
                 if followNew { spareHelper = try? WarmClaude(system: Planner.system, schema: Planner.schema) }
                 let style = readingMood == "Auto" ? "" : " Read it in a \(readingMood.lowercased()) style."
-                plan = try await Planner.plan(units: items, purpose: purpose + style, alreadyRead: alreadyRead, following: followNew, rightSide: followNew ? rightSide : [], helper: helper)
+                let tableRows = Dictionary(uniqueKeysWithValues: items.enumerated().compactMap { index, unit in
+                    unit.spans.first.flatMap { lines[$0.line].tableRow ? (index, $0.line) : nil }
+                })
+                plan = try await Planner.plan(units: items, purpose: purpose + style, alreadyRead: alreadyRead, following: followNew, rightSide: followNew ? rightSide : [], tableRows: tableRows, helper: helper)
             } else {
                 plan = LocalDirector.plan(units: items, purpose: purpose, mood: readingMood, rightSide: rightSide, following: followNew)
             }
@@ -1395,7 +1422,8 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
             }
             let item = items[index]
             setStatus("Reading  \(index + 1) of \(items.count)", item.text)
-            progressLine?.fraction = CGFloat(index + 1) / CGFloat(items.count)
+            readingPlace = (index, items.count)
+            progressLine?.fraction = CGFloat(index) / CGFloat(items.count)
             let url = try await audio[index]!.value
             if rescan { return }
             if CommandLine.arguments.contains("--log-spoken") { note("TEST spoke: \(item.text)") }
@@ -1407,7 +1435,15 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
                 continue
             }
             seen += item.spans.map { lines[$0.line].text }
-            try await Task.sleep(for: .seconds(max(item.pauseAfter, item.delivery.settings.pause) / Double(speed)))
+            // No long pause after the last sentence of a screen, since the page scrolls on right away.
+            let isLast = index == items.count - 1
+            let full = max(item.pauseAfter, item.delivery.settings.pause) / Double(speed)
+            let rest = isLast ? min(full, 0.15) : full
+            // The highlight starts gliding to the next sentence just before it is spoken, so the eye is already there.
+            let lead = isLast ? 0 : min(0.18, rest * 0.6)
+            try await Task.sleep(for: .seconds(rest - lead))
+            if lead > 0, jump == 0, !isPaused { highlight(items[index + 1], lines: lines, progress: 0) }
+            try await Task.sleep(for: .seconds(lead))
             index = max(0, index + (jump == 0 ? 1 : jump))
             jump = 0
         }
@@ -1469,10 +1505,13 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
         let sound = try makePlayer(url, volume: pow(10, item.delivery.settings.gain / 20) * 0.88, reportingTo: finished)
         player = sound
         highlight(item, lines: lines, progress: 0)
-        let timer = Timer(timeInterval: 1.0 / 30, repeats: true) { [weak self, weak sound] _ in
+        let timer = Timer(timeInterval: 1.0 / 60, repeats: true) { [weak self, weak sound] _ in
             MainActor.assumeIsolated {
                 guard let self, let sound, sound.duration > 0 else { return }
-                self.highlight(item, lines: lines, progress: sound.currentTime / sound.duration)
+                let progress = sound.currentTime / sound.duration
+                self.highlight(item, lines: lines, progress: progress)
+                // The bar creeps along with the voice, instead of stepping once per sentence.
+                self.progressLine?.fraction = (CGFloat(self.readingPlace.index) + CGFloat(progress)) / CGFloat(max(self.readingPlace.count, 1))
             }
         }
         RunLoop.main.add(timer, forMode: .common)
@@ -1538,7 +1577,17 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
     private func setStatus(_ status: String, _ text: String) {
         pet.react(to: status)
         statusLine?.stringValue = status
-        caption?.stringValue = text
+        if let caption, caption.stringValue != text {
+            caption.stringValue = text
+            // The new line fades in, so the words change gently rather than flipping.
+            if !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion {
+                caption.alphaValue = 0.3
+                NSAnimationContext.runAnimationGroup { context in
+                    context.duration = 0.25
+                    caption.animator().alphaValue = 1
+                }
+            }
+        }
         caption?.toolTip = text
     }
 

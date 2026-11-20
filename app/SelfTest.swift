@@ -115,6 +115,53 @@ func runSelfTest() -> Int32 {
     check("reads a spoken answer and its sources", parsed?.sources.first?.url == "https://www.python.org/downloads/")
     check("opens ordinary web sources", safeSourceURL("https://www.python.org/downloads/") != nil)
     check("refuses unsafe source links", safeSourceURL("file:///etc/passwd") == nil && safeSourceURL("javascript:alert(1)") == nil)
+
+    func cell(_ text: String, x: CGFloat, top: CGFloat, width: CGFloat = 0.12) -> ScreenLine {
+        ScreenLine(text: text, box: CGRect(x: x, y: top - 0.02, width: width, height: 0.02))
+    }
+    // The recognizer lists a table column by column, so that is the order used here.
+    let columnByColumn = [
+        cell("Our plans compare as follows:", x: 0.1, top: 0.9, width: 0.6),
+        cell("Plan", x: 0.1, top: 0.8), cell("Basic", x: 0.1, top: 0.7), cell("Pro", x: 0.1, top: 0.6), cell("Team", x: 0.1, top: 0.5),
+        cell("Price", x: 0.35, top: 0.8), cell("10 dollars", x: 0.35, top: 0.7), cell("20 dollars", x: 0.35, top: 0.6),
+        cell("per month", x: 0.35, top: 0.575), cell("40 dollars", x: 0.35, top: 0.5),
+        cell("Limit", x: 0.6, top: 0.8), cell("5 users", x: 0.6, top: 0.7), cell("50 users", x: 0.6, top: 0.6), cell("500 users", x: 0.6, top: 0.5),
+        cell("Pick the plan that fits.", x: 0.1, top: 0.35, width: 0.5),
+    ]
+    let rebuilt = tableAware(columnByColumn)
+    check("reads a table row by row, headers named", rebuilt.map(\.text) == [
+        "Our plans compare as follows:", "Table with columns Plan, Price, and Limit.",
+        "Basic. Price: 10 dollars. Limit: 5 users.", "Pro. Price: 20 dollars per month. Limit: 50 users.",
+        "Team. Price: 40 dollars. Limit: 500 users.", "Pick the plan that fits.",
+    ])
+    check("marks the rebuilt rows as table rows", rebuilt.map(\.tableRow) == [false, true, true, true, true, false])
+    check("reads each table row as its own paragraph", paragraphRanges(rebuilt, in: 1..<5).count == 4)
+    let prose = (0..<12).map { cell("A line of ordinary text number \($0).", x: 0.1, top: 0.9 - CGFloat($0) * 0.03, width: 0.7) }
+    check("leaves ordinary text alone", tableAware(prose) == prose)
+    let pairs = (0..<6).flatMap { [cell("Term \($0)", x: 0.1, top: 0.9 - CGFloat($0) * 0.1), cell("Its meaning \($0)", x: 0.4, top: 0.9 - CGFloat($0) * 0.1)] }
+    check("leaves a two-column list alone", tableAware(pairs) == pairs)
+    check("does not change a table twice", tableAware(rebuilt) == rebuilt)
+    let glide = stride(from: 0.0, through: 1.0, by: 0.05).map(easedProgress)
+    check("the scroll glide starts at 0 and ends at 1", glide.first == 0 && glide.last == 1)
+    check("the scroll glide never goes backwards", zip(glide, glide.dropFirst()).allSatisfy { $0 <= $1 })
+    check("the scroll glide starts and ends gently", glide[1] < 0.01 && glide[19] > 0.99 && glide[10] == 0.5)
+    if !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion {
+        let marker = HighlightView(frame: NSRect(x: 0, y: 0, width: 400, height: 200))
+        // How strongly the highlight tints the middle of where it should be, from 0 to 1.
+        func tint() -> CGFloat {
+            guard let image = marker.bitmapImageRepForCachingDisplay(in: marker.bounds) else { return -1 }
+            marker.cacheDisplay(in: marker.bounds, to: image)
+            let scale = CGFloat(image.pixelsWide) / marker.bounds.width
+            return image.colorAt(x: Int(240 * scale), y: Int(90 * scale))?.alphaComponent ?? -1
+        }
+        marker.segments = [HighlightSegment(rect: CGRect(x: 0.5, y: 0.5, width: 0.2, height: 0.1), done: 0)]
+        check("a highlight fades in instead of popping", tint() < 0.05)
+        RunLoop.main.run(until: Date().addingTimeInterval(0.8))
+        check("the highlight settles on its place", tint() > 0.15)
+        marker.segments = []
+        RunLoop.main.run(until: Date().addingTimeInterval(0.5))
+        check("a cleared highlight fades away", tint() < 0.02)
+    }
     print(failures == 0 ? "All self-tests passed" : "\(failures) self-tests failed")
     return failures == 0 ? 0 : 1
 }

@@ -204,7 +204,83 @@ struct HighlightSegment {
 
 /// Marks the sentence being read and sweeps across it in time with the voice.
 final class HighlightView: NSView {
-    var segments: [HighlightSegment] = [] { didSet { needsDisplay = true } }
+    /// Where the highlights should be. The view glides to them, so moving to the next sentence, line or screen is one
+    /// smooth motion, and a highlight fades in and out instead of popping.
+    var segments: [HighlightSegment] = [] { didSet { retarget() } }
+
+    private struct Shown {
+        var rect: CGRect
+        var done: CGFloat
+        var alpha: CGFloat
+    }
+    private var shown: [Shown] = []
+    private var glide: Timer?
+    private var lastTick = Date()
+
+    private func retarget() {
+        if NSWorkspace.shared.accessibilityDisplayShouldReduceMotion {
+            shown = segments.map { Shown(rect: $0.rect, done: $0.done, alpha: 1) }
+            needsDisplay = true
+            return
+        }
+        for (index, segment) in segments.enumerated() {
+            if index < shown.count {
+                shown[index].done = segment.done
+            } else {
+                // A new highlight grows out of the last one, or fades in where it is if there was none.
+                shown.append(Shown(rect: shown.last?.rect ?? segment.rect, done: segment.done, alpha: shown.isEmpty ? 0 : 1))
+            }
+        }
+        needsDisplay = true
+        guard glide == nil, !shown.isEmpty else { return }
+        lastTick = Date()
+        let timer = Timer(timeInterval: 1.0 / 60, repeats: true) { [weak self] timer in
+            guard let self else { return timer.invalidate() }
+            MainActor.assumeIsolated { self.glideStep() }
+        }
+        RunLoop.main.add(timer, forMode: .common)
+        glide = timer
+    }
+
+    private func glideStep() {
+        let now = Date()
+        let dt = min(now.timeIntervalSince(lastTick), 0.05)
+        lastTick = now
+        let move = CGFloat(1 - exp(-dt / 0.06))
+        let fade = CGFloat(1 - exp(-dt / 0.09))
+        var settled = true
+        var kept: [Shown] = []
+        for (index, var item) in shown.enumerated() {
+            if index < segments.count {
+                let goal = segments[index].rect
+                let close = abs(goal.minX - item.rect.minX) < 0.0004 && abs(goal.minY - item.rect.minY) < 0.0004
+                    && abs(goal.width - item.rect.width) < 0.0004 && abs(goal.height - item.rect.height) < 0.0004
+                if close {
+                    item.rect = goal
+                } else {
+                    settled = false
+                    item.rect = CGRect(
+                        x: item.rect.minX + (goal.minX - item.rect.minX) * move, y: item.rect.minY + (goal.minY - item.rect.minY) * move,
+                        width: item.rect.width + (goal.width - item.rect.width) * move, height: item.rect.height + (goal.height - item.rect.height) * move
+                    )
+                }
+                item.alpha += (1 - item.alpha) * fade
+                if item.alpha < 0.995 { settled = false } else { item.alpha = 1 }
+            } else {
+                // A highlight that is no longer wanted fades away.
+                item.alpha -= CGFloat(dt / 0.18)
+                if item.alpha <= 0 { continue }
+                settled = false
+            }
+            kept.append(item)
+        }
+        shown = kept
+        needsDisplay = true
+        if settled {
+            glide?.invalidate()
+            glide = nil
+        }
+    }
 
     override func draw(_ dirtyRect: NSRect) {
         NSColor.white.withAlphaComponent(0.4).setStroke()
@@ -212,22 +288,22 @@ final class HighlightView: NSView {
         outline.lineWidth = 1.5
         outline.stroke()
         let accent = Palette.accent
-        for segment in segments where segment.rect.width > 0 {
+        for segment in shown where segment.rect.width > 0 {
             let area = NSRect(
                 x: segment.rect.minX * bounds.width - 3,
                 y: segment.rect.minY * bounds.height - 2,
                 width: segment.rect.width * bounds.width + 6,
                 height: segment.rect.height * bounds.height + 4
             )
-            accent.withAlphaComponent(0.2).setFill()
+            accent.withAlphaComponent(0.2 * segment.alpha).setFill()
             NSBezierPath(roundedRect: area, xRadius: 4, yRadius: 4).fill()
             guard segment.done > 0 else { continue }
             var spoken = area
             spoken.size.width *= segment.done
-            accent.withAlphaComponent(0.45).setFill()
+            accent.withAlphaComponent(0.45 * segment.alpha).setFill()
             NSBezierPath(roundedRect: spoken, xRadius: 4, yRadius: 4).fill()
             if segment.done < 1 {
-                accent.setFill()
+                accent.withAlphaComponent(segment.alpha).setFill()
                 NSRect(x: spoken.maxX - 1, y: area.minY, width: 2, height: area.height).fill()
             }
         }

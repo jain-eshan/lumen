@@ -25,21 +25,35 @@ let syntheticScrollMarker: Int64 = 0x4E415252
 
 func globalCursorLocation() -> CGPoint { CGEvent(source: nil)?.location ?? .zero }
 
-/// Scrolls in small steps so the page glides, and only borrows the cursor if it is elsewhere.
-func scrollDown(in rect: CGRect) async {
-    let steps = 10
-    let step = Int32(-(rect.height * 0.75) / CGFloat(steps))
+/// How far through a glide the page should be, from 0 to 1, easing in and out so it starts and stops gently.
+func easedProgress(_ time: Double) -> Double {
+    let t = min(max(time, 0), 1)
+    return t * t * (3 - 2 * t)
+}
+
+/// Glides the page down a screen the way a trackpad flick does: slow, quick, slow. It follows the clock rather than
+/// counting steps, so the motion stays even if a step runs late. It only borrows the cursor if it is elsewhere.
+func scrollDown(in rect: CGRect, gentle: Bool = false) async {
+    let distance = Int(rect.height * 0.75)
+    let duration = gentle ? 0.15 : min(max(Double(distance) / 850, 0.55), 0.9)
     let cursor = globalCursorLocation()
     let target = CGPoint(x: rect.midX, y: rect.midY)
     let borrowCursor = !rect.contains(cursor)
     if borrowCursor { CGWarpMouseCursorPosition(target) }
-    for _ in 0..<steps {
-        if let event = CGEvent(scrollWheelEvent2Source: nil, units: .pixel, wheelCount: 1, wheel1: step, wheel2: 0, wheel3: 0) {
+    let clock = ContinuousClock()
+    let began = clock.now
+    var sent = 0
+    while sent < distance {
+        let elapsed = (clock.now - began)
+        let time = Double(elapsed.components.seconds) + Double(elapsed.components.attoseconds) / 1e18
+        let reached = time >= duration ? distance : Int((Double(distance) * easedProgress(time / duration)).rounded())
+        if reached > sent, let event = CGEvent(scrollWheelEvent2Source: nil, units: .pixel, wheelCount: 1, wheel1: Int32(-(reached - sent)), wheel2: 0, wheel3: 0) {
             event.location = borrowCursor ? target : cursor
             event.setIntegerValueField(.eventSourceUserData, value: syntheticScrollMarker)
             event.post(tap: .cghidEventTap)
+            sent = reached
         }
-        try? await Task.sleep(for: .milliseconds(18))
+        try? await Task.sleep(for: .milliseconds(8))
     }
     if borrowCursor { CGWarpMouseCursorPosition(cursor) }
 }
