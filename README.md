@@ -4,7 +4,7 @@
 
 [![Watch the 50-second demo](docs/demo-poster.jpg)](https://github.com/jain-eshan/narrator/releases/download/v1.2/narrator-demo.mp4)
 
-[Watch the 50-second demo](https://github.com/jain-eshan/narrator/releases/download/v1.2/narrator-demo.mp4) · [Download for Mac](https://github.com/jain-eshan/narrator/releases/latest)
+[Watch the 50-second demo](https://github.com/jain-eshan/narrator/releases/download/v1.2/narrator-demo.mp4) · [Download for Mac](https://github.com/jain-eshan/narrator/releases/latest) · [Install guide](https://www.eshanjain.com/narrator)
 
 Narrator is a Mac menu bar app for the long stuff you were going to skip: Claude replies, articles, docs, email threads. Point it at any part of your screen and it reads it to you in a natural voice, highlighting each line as it goes. It keeps up with Claude as new replies stream in, and it answers questions about what's on screen. Its face is Lumen, a small moth who lives on your Dock and reads along with you.
 
@@ -13,6 +13,8 @@ Reading runs entirely on your Mac. The voice is Kokoro, running locally: no toke
 Needs an Apple silicon Mac on macOS 14 or later.
 
 ## Install
+
+New to installing Mac apps from outside the App Store? [eshanjain.com/narrator](https://www.eshanjain.com/narrator) walks through every step in plain language.
 
 Download `Narrator.dmg` from the [latest release](https://github.com/jain-eshan/narrator/releases/latest), open it, and drag Narrator to Applications. The app is self-signed rather than signed with an Apple Developer ID, so macOS stops it the first time. On macOS 15 or later, open it once, then go to System Settings > Privacy & Security, scroll down and click Open Anyway. On macOS 14, right-click it and choose Open. The file is about 600 MB because the voice engine and model are inside, so it works offline.
 
