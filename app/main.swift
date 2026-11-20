@@ -1562,6 +1562,20 @@ final class Pet: NSObject {
         }
     }
 
+    /// Keeps Lumen where it was last put, instead of wandering the Dock or following the app being read.
+    var staysPut: Bool {
+        get { UserDefaults.standard.bool(forKey: "petStaysPut") }
+        set {
+            UserDefaults.standard.set(newValue, forKey: "petStaysPut")
+            guard newValue else { return }
+            goalX = nil
+            flight = nil
+            if motion == .walking { motion = .standing }
+            if motion == .flying { motion = .gliding }
+            if feet != .zero { UserDefaults.standard.set(Double(feet.x), forKey: "petHomeX") }
+        }
+    }
+
     var mood: PetMood {
         get { currentMood }
         set {
@@ -1590,7 +1604,11 @@ final class Pet: NSObject {
         }
         guard let panel, !panel.isVisible || panel.alphaValue < 1 else { return }
         let dock = self.dock()
-        if feet == .zero { feet = CGPoint(x: dock.range.lowerBound + (dock.range.upperBound - dock.range.lowerBound) * 0.3, y: dock.floor) }
+        if feet == .zero {
+            let home = UserDefaults.standard.object(forKey: "petHomeX") as? Double
+            let x = staysPut ? home.map { min(max(CGFloat($0), dock.range.lowerBound), dock.range.upperBound) } : nil
+            feet = CGPoint(x: x ?? dock.range.lowerBound + (dock.range.upperBound - dock.range.lowerBound) * 0.3, y: dock.floor)
+        }
         // Lumen flutters down onto the Dock, or simply appears when motion is reduced.
         if swooping && !reduceMotion {
             feet.y = dock.floor + 320
@@ -1755,6 +1773,7 @@ final class Pet: NSObject {
     private func drop() {
         goalX = nil
         flight = nil
+        if staysPut { UserDefaults.standard.set(Double(feet.x), forKey: "petHomeX") }
         motion = reduceMotion ? .standing : .gliding
         if reduceMotion { feet.y = dock().floor }
     }
@@ -1777,8 +1796,8 @@ final class Pet: NSObject {
 
         // Where Lumen wants to be.
         if speaking || currentMood == .paused {
-            if let app = readingApp(), let x = dock.icons[app] { goalX = x }
-        } else if currentMood == .idle, motion == .standing, !view.sleeping, !still, Date() > nextWander {
+            if !staysPut, let app = readingApp(), let x = dock.icons[app] { goalX = x }
+        } else if currentMood == .idle, motion == .standing, !view.sleeping, !still, !staysPut, Date() > nextWander {
             let span = dock.range.upperBound - dock.range.lowerBound
             var x = dock.range.lowerBound + CGFloat.random(in: 0...1) * span
             if abs(x - feet.x) < 90 { x = feet.x + (x < feet.x ? -140 : 140) }
@@ -2080,6 +2099,7 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
         askHint.isEnabled = false
         menu.addItem(.separator())
         menu.addItem(withTitle: "Show Lumen", action: #selector(togglePet(_:)), keyEquivalent: "").state = pet.isEnabled ? .on : .off
+        menu.addItem(withTitle: "Keep Lumen in one place", action: #selector(togglePetStaysPut(_:)), keyEquivalent: "").state = pet.staysPut ? .on : .off
         menu.addItem(withTitle: "Replay welcome", action: #selector(welcome), keyEquivalent: "")
         if ClaudeCode.executable() != nil {
             menu.addItem(withTitle: "Richer voice with Claude (uses your Claude plan)", action: #selector(toggleClaudeDirection(_:)), keyEquivalent: "").state = usesClaude ? .on : .off
@@ -2289,6 +2309,11 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
             pet.mood = .happy
             pet.relax(after: 2.5)
         }
+    }
+
+    @objc private func togglePetStaysPut(_ sender: NSMenuItem) {
+        pet.staysPut.toggle()
+        sender.state = pet.staysPut ? .on : .off
     }
 
     @objc private func toggleClaudeDirection(_ sender: NSMenuItem) {
