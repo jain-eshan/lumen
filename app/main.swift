@@ -1040,21 +1040,35 @@ let syntheticScrollMarker: Int64 = 0x4E415252
 
 func globalCursorLocation() -> CGPoint { CGEvent(source: nil)?.location ?? .zero }
 
-/// Scrolls in small steps so the page glides, and only borrows the cursor if it is elsewhere.
-func scrollDown(in rect: CGRect) async {
-    let steps = 10
-    let step = Int32(-(rect.height * 0.75) / CGFloat(steps))
+/// How far through a glide the page should be, from 0 to 1, easing in and out so it starts and stops gently.
+func easedProgress(_ time: Double) -> Double {
+    let t = min(max(time, 0), 1)
+    return t * t * (3 - 2 * t)
+}
+
+/// Glides the page down a screen the way a trackpad flick does: slow, quick, slow. It follows the clock rather than
+/// counting steps, so the motion stays even if a step runs late. It only borrows the cursor if it is elsewhere.
+func scrollDown(in rect: CGRect, gentle: Bool = false) async {
+    let distance = Int(rect.height * 0.75)
+    let duration = gentle ? 0.15 : min(max(Double(distance) / 850, 0.55), 0.9)
     let cursor = globalCursorLocation()
     let target = CGPoint(x: rect.midX, y: rect.midY)
     let borrowCursor = !rect.contains(cursor)
     if borrowCursor { CGWarpMouseCursorPosition(target) }
-    for _ in 0..<steps {
-        if let event = CGEvent(scrollWheelEvent2Source: nil, units: .pixel, wheelCount: 1, wheel1: step, wheel2: 0, wheel3: 0) {
+    let clock = ContinuousClock()
+    let began = clock.now
+    var sent = 0
+    while sent < distance {
+        let elapsed = (clock.now - began)
+        let time = Double(elapsed.components.seconds) + Double(elapsed.components.attoseconds) / 1e18
+        let reached = time >= duration ? distance : Int((Double(distance) * easedProgress(time / duration)).rounded())
+        if reached > sent, let event = CGEvent(scrollWheelEvent2Source: nil, units: .pixel, wheelCount: 1, wheel1: Int32(-(reached - sent)), wheel2: 0, wheel3: 0) {
             event.location = borrowCursor ? target : cursor
             event.setIntegerValueField(.eventSourceUserData, value: syntheticScrollMarker)
             event.post(tap: .cghidEventTap)
+            sent = reached
         }
-        try? await Task.sleep(for: .milliseconds(18))
+        try? await Task.sleep(for: .milliseconds(8))
     }
     if borrowCursor { CGWarpMouseCursorPosition(cursor) }
 }
@@ -1283,7 +1297,83 @@ struct HighlightSegment {
 
 /// Marks the sentence being read and sweeps across it in time with the voice.
 final class HighlightView: NSView {
-    var segments: [HighlightSegment] = [] { didSet { needsDisplay = true } }
+    /// Where the highlights should be. The view glides to them, so moving to the next sentence, line or screen is one
+    /// smooth motion, and a highlight fades in and out instead of popping.
+    var segments: [HighlightSegment] = [] { didSet { retarget() } }
+
+    private struct Shown {
+        var rect: CGRect
+        var done: CGFloat
+        var alpha: CGFloat
+    }
+    private var shown: [Shown] = []
+    private var glide: Timer?
+    private var lastTick = Date()
+
+    private func retarget() {
+        if NSWorkspace.shared.accessibilityDisplayShouldReduceMotion {
+            shown = segments.map { Shown(rect: $0.rect, done: $0.done, alpha: 1) }
+            needsDisplay = true
+            return
+        }
+        for (index, segment) in segments.enumerated() {
+            if index < shown.count {
+                shown[index].done = segment.done
+            } else {
+                // A new highlight grows out of the last one, or fades in where it is if there was none.
+                shown.append(Shown(rect: shown.last?.rect ?? segment.rect, done: segment.done, alpha: shown.isEmpty ? 0 : 1))
+            }
+        }
+        needsDisplay = true
+        guard glide == nil, !shown.isEmpty else { return }
+        lastTick = Date()
+        let timer = Timer(timeInterval: 1.0 / 60, repeats: true) { [weak self] timer in
+            guard let self else { return timer.invalidate() }
+            MainActor.assumeIsolated { self.glideStep() }
+        }
+        RunLoop.main.add(timer, forMode: .common)
+        glide = timer
+    }
+
+    private func glideStep() {
+        let now = Date()
+        let dt = min(now.timeIntervalSince(lastTick), 0.05)
+        lastTick = now
+        let move = CGFloat(1 - exp(-dt / 0.06))
+        let fade = CGFloat(1 - exp(-dt / 0.09))
+        var settled = true
+        var kept: [Shown] = []
+        for (index, var item) in shown.enumerated() {
+            if index < segments.count {
+                let goal = segments[index].rect
+                let close = abs(goal.minX - item.rect.minX) < 0.0004 && abs(goal.minY - item.rect.minY) < 0.0004
+                    && abs(goal.width - item.rect.width) < 0.0004 && abs(goal.height - item.rect.height) < 0.0004
+                if close {
+                    item.rect = goal
+                } else {
+                    settled = false
+                    item.rect = CGRect(
+                        x: item.rect.minX + (goal.minX - item.rect.minX) * move, y: item.rect.minY + (goal.minY - item.rect.minY) * move,
+                        width: item.rect.width + (goal.width - item.rect.width) * move, height: item.rect.height + (goal.height - item.rect.height) * move
+                    )
+                }
+                item.alpha += (1 - item.alpha) * fade
+                if item.alpha < 0.995 { settled = false } else { item.alpha = 1 }
+            } else {
+                // A highlight that is no longer wanted fades away.
+                item.alpha -= CGFloat(dt / 0.18)
+                if item.alpha <= 0 { continue }
+                settled = false
+            }
+            kept.append(item)
+        }
+        shown = kept
+        needsDisplay = true
+        if settled {
+            glide?.invalidate()
+            glide = nil
+        }
+    }
 
     override func draw(_ dirtyRect: NSRect) {
         NSColor.white.withAlphaComponent(0.4).setStroke()
@@ -1291,22 +1381,22 @@ final class HighlightView: NSView {
         outline.lineWidth = 1.5
         outline.stroke()
         let accent = Palette.accent
-        for segment in segments where segment.rect.width > 0 {
+        for segment in shown where segment.rect.width > 0 {
             let area = NSRect(
                 x: segment.rect.minX * bounds.width - 3,
                 y: segment.rect.minY * bounds.height - 2,
                 width: segment.rect.width * bounds.width + 6,
                 height: segment.rect.height * bounds.height + 4
             )
-            accent.withAlphaComponent(0.2).setFill()
+            accent.withAlphaComponent(0.2 * segment.alpha).setFill()
             NSBezierPath(roundedRect: area, xRadius: 4, yRadius: 4).fill()
             guard segment.done > 0 else { continue }
             var spoken = area
             spoken.size.width *= segment.done
-            accent.withAlphaComponent(0.45).setFill()
+            accent.withAlphaComponent(0.45 * segment.alpha).setFill()
             NSBezierPath(roundedRect: spoken, xRadius: 4, yRadius: 4).fill()
             if segment.done < 1 {
-                accent.setFill()
+                accent.withAlphaComponent(segment.alpha).setFill()
                 NSRect(x: spoken.maxX - 1, y: area.minY, width: 2, height: area.height).fill()
             }
         }
@@ -1661,7 +1751,7 @@ final class Pet: NSObject {
     func react(to status: String) {
         let moods: [(String, PetMood)] = [
             ("Reading", .reading), ("Answer", .talking), ("Paused", .paused), ("Waiting", .paused), ("Understanding", .thinking),
-            ("Preparing", .thinking), ("Thinking", .thinking), ("Jump", .jump), ("Following", .idle), ("Narrator", .happy),
+            ("Preparing", .thinking), ("Scrolling", .thinking), ("Thinking", .thinking), ("Jump", .jump), ("Following", .idle), ("Narrator", .happy),
         ]
         if let match = moods.first(where: { status.hasPrefix($0.0) }) { mood = match.1 }
     }
@@ -2008,6 +2098,8 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
     private var statusLine: NSTextField?
     private var caption: NSTextField?
     private var progressLine: ProgressLine?
+    /// Which sentence of how many is being read, for the progress bar.
+    private var readingPlace = (index: 0, count: 1)
     private var controls: [NSButton] = []
     private var playButton: ControlButton?
     private var speedButton: ControlButton?
@@ -3184,6 +3276,8 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
                 emptyRounds += 1
             } else {
                 emptyRounds = 0
+                // Marks where reading will resume while the next part is being worked out.
+                if !scrolledByUser, let first = fresh.first { highlightView?.segments = [HighlightSegment(rect: first.box, done: 0)] }
                 try await narrate(fresh, purpose: purpose)
             }
             try await waitWhilePaused()
@@ -3196,13 +3290,27 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
             try Task.checkCancellation()
             try await waitUntilVisible()
             highlightView?.segments = []
-            await scrollDown(in: currentRect)
+            setStatus("Scrolling", "Moving on to the next part of the page.")
+            await scrollDown(in: currentRect, gentle: NSWorkspace.shared.accessibilityDisplayShouldReduceMotion)
             note("scrolled")
-            try await Task.sleep(for: .milliseconds(650))
+            try await waitForPageToSettle()
         }
         try await waitUntilVisible()
         let remaining = unreadLines(in: readableLines(try await recognizeLines(in: await capture(currentRect))), seen: seen)
         if remaining.contains(where: { normalized($0.text).count >= 16 }) { try await narrate(remaining, purpose: purpose) }
+    }
+
+    /// After a scroll, waits until the page has stopped moving, so the next look at the screen is sharp. Some pages keep
+    /// gliding for a moment, and some never stop changing, so it gives up after about a second.
+    private func waitForPageToSettle() async throws {
+        try await Task.sleep(for: .milliseconds(120))
+        var previous = try await capture(currentRect).dataProvider?.data as Data?
+        for _ in 0..<8 {
+            try await Task.sleep(for: .milliseconds(100))
+            let now = try await capture(currentRect).dataProvider?.data as Data?
+            if now != nil, now == previous { return }
+            previous = now
+        }
     }
 
     /// Watches for new text and speaks finished sentences while the rest of a reply is still arriving.
@@ -3388,7 +3496,8 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
             }
             let item = items[index]
             setStatus("Reading  \(index + 1) of \(items.count)", item.text)
-            progressLine?.fraction = CGFloat(index + 1) / CGFloat(items.count)
+            readingPlace = (index, items.count)
+            progressLine?.fraction = CGFloat(index) / CGFloat(items.count)
             let url = try await audio[index]!.value
             if rescan { return }
             if CommandLine.arguments.contains("--log-spoken") { note("TEST spoke: \(item.text)") }
@@ -3400,7 +3509,15 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
                 continue
             }
             seen += item.spans.map { lines[$0.line].text }
-            try await Task.sleep(for: .seconds(max(item.pauseAfter, item.delivery.settings.pause) / Double(speed)))
+            // No long pause after the last sentence of a screen, since the page scrolls on right away.
+            let isLast = index == items.count - 1
+            let full = max(item.pauseAfter, item.delivery.settings.pause) / Double(speed)
+            let rest = isLast ? min(full, 0.15) : full
+            // The highlight starts gliding to the next sentence just before it is spoken, so the eye is already there.
+            let lead = isLast ? 0 : min(0.18, rest * 0.6)
+            try await Task.sleep(for: .seconds(rest - lead))
+            if lead > 0, jump == 0, !isPaused { highlight(items[index + 1], lines: lines, progress: 0) }
+            try await Task.sleep(for: .seconds(lead))
             index = max(0, index + (jump == 0 ? 1 : jump))
             jump = 0
         }
@@ -3468,10 +3585,13 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
         sound.prepareToPlay()
         player = sound
         highlight(item, lines: lines, progress: 0)
-        let timer = Timer(timeInterval: 1.0 / 30, repeats: true) { [weak self, weak sound] _ in
+        let timer = Timer(timeInterval: 1.0 / 60, repeats: true) { [weak self, weak sound] _ in
             MainActor.assumeIsolated {
                 guard let self, let sound, sound.duration > 0 else { return }
-                self.highlight(item, lines: lines, progress: sound.currentTime / sound.duration)
+                let progress = sound.currentTime / sound.duration
+                self.highlight(item, lines: lines, progress: progress)
+                // The bar creeps along with the voice, instead of stepping once per sentence.
+                self.progressLine?.fraction = (CGFloat(self.readingPlace.index) + CGFloat(progress)) / CGFloat(max(self.readingPlace.count, 1))
             }
         }
         RunLoop.main.add(timer, forMode: .common)
@@ -3546,7 +3666,17 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
     private func setStatus(_ status: String, _ text: String) {
         pet.react(to: status)
         statusLine?.stringValue = status
-        caption?.stringValue = text
+        if let caption, caption.stringValue != text {
+            caption.stringValue = text
+            // The new line fades in, so the words change gently rather than flipping.
+            if !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion {
+                caption.alphaValue = 0.3
+                NSAnimationContext.runAnimationGroup { context in
+                    context.duration = 0.25
+                    caption.animator().alphaValue = 1
+                }
+            }
+        }
         caption?.toolTip = text
     }
 
@@ -3858,6 +3988,27 @@ func runSelfTest() -> Int32 {
     let pairs = (0..<6).flatMap { [cell("Term \($0)", x: 0.1, top: 0.9 - CGFloat($0) * 0.1), cell("Its meaning \($0)", x: 0.4, top: 0.9 - CGFloat($0) * 0.1)] }
     check("leaves a two-column list alone", tableAware(pairs) == pairs)
     check("does not change a table twice", tableAware(rebuilt) == rebuilt)
+    let glide = stride(from: 0.0, through: 1.0, by: 0.05).map(easedProgress)
+    check("the scroll glide starts at 0 and ends at 1", glide.first == 0 && glide.last == 1)
+    check("the scroll glide never goes backwards", zip(glide, glide.dropFirst()).allSatisfy { $0 <= $1 })
+    check("the scroll glide starts and ends gently", glide[1] < 0.01 && glide[19] > 0.99 && glide[10] == 0.5)
+    if !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion {
+        let marker = HighlightView(frame: NSRect(x: 0, y: 0, width: 400, height: 200))
+        // How strongly the highlight tints the middle of where it should be, from 0 to 1.
+        func tint() -> CGFloat {
+            guard let image = marker.bitmapImageRepForCachingDisplay(in: marker.bounds) else { return -1 }
+            marker.cacheDisplay(in: marker.bounds, to: image)
+            let scale = CGFloat(image.pixelsWide) / marker.bounds.width
+            return image.colorAt(x: Int(240 * scale), y: Int(90 * scale))?.alphaComponent ?? -1
+        }
+        marker.segments = [HighlightSegment(rect: CGRect(x: 0.5, y: 0.5, width: 0.2, height: 0.1), done: 0)]
+        check("a highlight fades in instead of popping", tint() < 0.05)
+        RunLoop.main.run(until: Date().addingTimeInterval(0.8))
+        check("the highlight settles on its place", tint() > 0.15)
+        marker.segments = []
+        RunLoop.main.run(until: Date().addingTimeInterval(0.5))
+        check("a cleared highlight fades away", tint() < 0.02)
+    }
     print(failures == 0 ? "All self-tests passed" : "\(failures) self-tests failed")
     return failures == 0 ? 0 : 1
 }
