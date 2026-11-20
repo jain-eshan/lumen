@@ -78,6 +78,26 @@ func normalized(_ text: String) -> String {
     text.lowercased().filter { $0.isLetter || $0.isNumber }
 }
 
+/// Lines already read are checked again several times a second while following, so each one is normalized only once.
+final class NormalizedMemo: @unchecked Sendable {
+    private let lock = NSLock()
+    private var known: [String: String] = [:]
+
+    func callAsFunction(_ texts: [String]) -> [String] {
+        lock.withLock {
+            if known.count > 100_000 { known.removeAll() }
+            return texts.map { text in
+                if let done = known[text] { return done }
+                let done = normalized(text)
+                known[text] = done
+                return done
+            }
+        }
+    }
+}
+
+let normalizedOnce = NormalizedMemo()
+
 let speakerNames = ["claude", "chatgpt", "gemini", "copilot", "assistant", "you", "me", "user", "human", "interviewer", "candidate"]
 
 let speakerLabel = try! NSRegularExpression(pattern: "^\\s*(\(speakerNames.joined(separator: "|")))\\s*[:\u{FF1A}]\\s*", options: .caseInsensitive)
@@ -117,14 +137,19 @@ func looksLikeChat(owner: String, title: String, purpose: String) -> Bool {
 
 /// Finds lines not read yet, using long lines already read as anchors after a scroll.
 func unreadLines(in current: [ScreenLine], seen: [String]) -> [ScreenLine] {
-    // This runs several times a second while following, so each line is normalized once.
-    let seenNormalized = seen.map(normalized)
+    // This runs several times a second while following, so each line is normalized once and remembered.
+    let seenNormalized = normalizedOnce(seen)
     let seenLines = Set(seenNormalized)
     // Joined text still matches when a resized window wraps the same words differently.
     // Searching it as one NSString is several times faster than String.contains, with the same answers for letters and digits.
     let seenText = seenNormalized.joined() as NSString
+    // A new line is asked about twice, once to find the anchor and once to filter, and the search is the slow part.
+    var answers: [String: Bool] = [:]
     func wasRead(_ text: String) -> Bool {
-        seenLines.contains(text) || (text.count >= 12 && seenText.range(of: text).location != NSNotFound)
+        if let known = answers[text] { return known }
+        let read = seenLines.contains(text) || (text.count >= 12 && seenText.range(of: text).location != NSNotFound)
+        answers[text] = read
+        return read
     }
     // Text recognition can misread a letter while a page scrolls, which must not repeat the line.
     let recent = seenNormalized.suffix(60).map { (characters: Array($0), numbers: numbers(in: $0)) }

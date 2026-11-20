@@ -55,7 +55,7 @@ HF_HOME=models envs/kokoro/bin/python -c "from huggingface_hub import snapshot_d
 Create a self-signed code signing identity and put its files in `.signing/` (`identity`, `keychain-password`, `narrator.keychain-db`). `build.sh` reads them. Then:
 
 ```bash
-zsh app/build.sh --full    # builds Narrator.app with the voice engine and model inside (about 1.9 GB)
+zsh app/build.sh --full    # builds Narrator.app with the voice engine and model inside (about 1 GB)
 zsh app/package.sh         # optional: makes dist/Narrator.dmg to share
 ```
 

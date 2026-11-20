@@ -62,5 +62,11 @@ if [[ ! -x "$RES/python/bin/python3" ]]; then
     file "$file" | grep -q "Mach-O" && sign "$file" 2>/dev/null || true
   done
 fi
+# The voice runs on MLX. PyTorch, and the libraries installed only to support it, are never needed:
+# leaving them out saves about 850 MB, starts the voice faster and uses less memory.
+SITE="$RES/python/lib/python3.12/site-packages"
+for unused in torch sympy mpmath networkx transformers curated_transformers spacy_curated_transformers; do
+  rm -rf "$SITE/$unused" "$SITE/$unused"-*.dist-info(N)
+done
 sign --identifier local.narrator.app "$BUNDLE"
 echo "Built $BUNDLE ($(du -sh "$BUNDLE" | cut -f1))"
