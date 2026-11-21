@@ -112,6 +112,7 @@ final class OverlayPanel: NSPanel {
 final class SelectionView: NSView {
     var onFinish: ((NSRect?) -> Void)?
     var hover: NSRect?
+    var hint = "Scroll to find it, then drag over what to read or click a window    Esc to cancel"
     private var start: NSPoint?
     private var current: NSPoint?
 
@@ -130,7 +131,7 @@ final class SelectionView: NSView {
     }
 
     override func draw(_ dirtyRect: NSRect) {
-        NSColor.black.withAlphaComponent(0.34).setFill()
+        NSColor.black.withAlphaComponent(0.14).setFill()
         bounds.fill()
         if let target = selection ?? hover {
             // A nearly invisible tint keeps this area clickable, because macOS passes clicks through fully clear pixels.
@@ -142,7 +143,7 @@ final class SelectionView: NSView {
             outline.stroke()
         }
         guard selection == nil else { return }
-        let hint = NSAttributedString(string: "Drag over what to read, or click a window    Esc to cancel", attributes: [
+        let hint = NSAttributedString(string: self.hint, attributes: [
             .font: NSFont.systemFont(ofSize: 14, weight: .medium),
             .foregroundColor: Palette.text,
         ])
@@ -159,6 +160,49 @@ final class SelectionView: NSView {
         let point = window.convertPoint(toScreen: event.locationInWindow)
         hover = windowRect(at: topLeftRect(from: NSRect(origin: point, size: .zero)).origin).map { window.convertFromScreen(bottomLeftRect(from: $0)) }
         needsDisplay = true
+    }
+
+    /// Scrolling over the selector scrolls the window underneath, so the reader can bring the right part into view before
+    /// dragging. The selector steps aside for the scroll and comes back once it stops. Some apps, Chrome among them,
+    /// ignore scrolls sent to them directly, so the scroll has to reach them the ordinary way.
+    private var scrollWatch: Any?
+    private var stepBack: DispatchWorkItem?
+    /// Tags the scrolls the selector hands on. Stepping aside takes a moment to reach the window server, so a scroll
+    /// handed on can land on the selector again; without this it would be handed on again, round and round, flooding
+    /// the Mac with scrolls until the pointer froze.
+    static let handedOn: Int64 = 0x4E415253
+    /// How a scroll is handed on. Tests replace it to count them.
+    static var handOn: (CGEvent) -> Void = { $0.post(tap: .cghidEventTap) }
+
+    override func scrollWheel(with event: NSEvent) {
+        guard let window, !window.ignoresMouseEvents, let original = event.cgEvent,
+              original.getIntegerValueField(.eventSourceUserData) != Self.handedOn, let scroll = original.copy() else { return }
+        window.ignoresMouseEvents = true
+        scroll.setIntegerValueField(.eventSourceUserData, value: Self.handedOn)
+        Self.handOn(scroll)
+        if scrollWatch == nil {
+            note("selection: scroll passed to the window underneath")
+            scrollWatch = NSEvent.addGlobalMonitorForEvents(matching: .scrollWheel) { [weak self] _ in
+                MainActor.assumeIsolated { self?.keepSteppedAside() }
+            }
+        }
+        keepSteppedAside()
+    }
+
+    private func keepSteppedAside() {
+        stepBack?.cancel()
+        let back = DispatchWorkItem { [weak self] in
+            guard let self else { return }
+            self.window?.ignoresMouseEvents = false
+            if let scrollWatch = self.scrollWatch { NSEvent.removeMonitor(scrollWatch) }
+            self.scrollWatch = nil
+        }
+        stepBack = back
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35, execute: back)
+    }
+
+    deinit {
+        if let scrollWatch { NSEvent.removeMonitor(scrollWatch) }
     }
 
     override func mouseDown(with event: NSEvent) {
@@ -193,6 +237,21 @@ final class SelectionView: NSView {
 final class PurposeField: NSTextField {
     var onCancel: (() -> Void)?
     override func cancelOperation(_ sender: Any?) { onCancel?() }
+
+    /// Narrator has no Edit menu, which is what normally turns Command + V and friends into paste and copy. Without this,
+    /// pasting and dictation apps such as Wispr Flow, which insert text by pressing Command + V, would do nothing.
+    override func performKeyEquivalent(with event: NSEvent) -> Bool {
+        let editing: [String: Selector] = [
+            "v": #selector(NSText.paste(_:)), "c": #selector(NSText.copy(_:)), "x": #selector(NSText.cut(_:)),
+            "a": #selector(NSText.selectAll(_:)), "z": Selector(("undo:")),
+        ]
+        if event.modifierFlags.intersection(.deviceIndependentFlagsMask) == .command, let editor = currentEditor(),
+           let action = event.charactersIgnoringModifiers.flatMap({ editing[$0.lowercased()] }), editor.responds(to: action) {
+            editor.perform(action, with: self)
+            return true
+        }
+        return super.performKeyEquivalent(with: event)
+    }
 }
 
 // MARK: - Reading highlight

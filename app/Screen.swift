@@ -74,13 +74,15 @@ struct WatchedWindow: Equatable {
     let title: String
     let owner: String
     let bounds: CGRect
+    var pid: pid_t = 0
 }
 
 func watchedWindow(from window: [String: Any]) -> WatchedWindow? {
     guard let bounds = window[kCGWindowBounds as String] as? NSDictionary,
           let rect = CGRect(dictionaryRepresentation: bounds),
           let id = window[kCGWindowNumber as String] as? CGWindowID else { return nil }
-    return WatchedWindow(id: id, title: window[kCGWindowName as String] as? String ?? "", owner: window[kCGWindowOwnerName as String] as? String ?? "", bounds: rect)
+    return WatchedWindow(id: id, title: window[kCGWindowName as String] as? String ?? "", owner: window[kCGWindowOwnerName as String] as? String ?? "", bounds: rect,
+                         pid: window[kCGWindowOwnerPID as String] as? pid_t ?? 0)
 }
 
 func topWindow(at point: CGPoint) -> WatchedWindow? {

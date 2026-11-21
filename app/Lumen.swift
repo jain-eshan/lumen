@@ -149,6 +149,8 @@ final class Pet: NSObject {
     private var bubble: NSPanel?
     private var bubbleActions: [() -> Void] = []
     private var bubbleHide: DispatchWorkItem?
+    /// A bubble with buttons is waiting on the reader, as opposed to a passing tip.
+    var isAsking: Bool { bubble != nil && !bubbleActions.isEmpty }
     private var relaxWork: DispatchWorkItem?
     private var timer: Timer?
     private enum Motion { case standing, walking, flying, gliding, carried }
@@ -301,6 +303,7 @@ final class Pet: NSObject {
             "Hi, I'm Lumen. Click me and point at anything. I'll read it to you.",
             "Option + Shift + 4 is our secret handshake. It picks something to read.",
             "Got a question about your screen? Press Option + Shift + A and ask away.",
+            "Click me, choose Note for Claude, and mark the parts you want to talk about.",
             "You can pick me up and drop me. I always flutter back.",
             "Read more. Without reading. Click me and I'll show you.",
             "I read by lantern light. Your screen counts.",
