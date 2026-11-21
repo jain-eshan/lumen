@@ -37,6 +37,8 @@ Lumen is bookish, calm and a little shy. It speaks in short, plain sentences.
 | `lumen-wordmark-banner.png` | Page headers and social images where a dark band fits. Night-ink background included. |
 | `lumen-wordmark-on-dark.png` | The word on any dark background. Transparent. |
 | `lumen-wordmark-on-light.png` | The word on any light background. Transparent. |
+| `lumen-social-1280x640.png` | GitHub social preview (Settings > Social preview). Icon, wordmark and tagline on night ink. |
+| `lumen-og-1200x630.png` | Share image for web pages (Open Graph), used by eshanjain.com/lumen. |
 
 The source images (raw generations) are `art/lumen-icon-final.png` and `art/lumen-wordmark-final.png`.
 
