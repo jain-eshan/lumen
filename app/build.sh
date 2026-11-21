@@ -27,6 +27,7 @@ cat > "$BUNDLE/Contents/Info.plist" <<'PLIST'
   <key>LSArchitecturePriority</key><array><string>arm64</string></array>
   <key>LSUIElement</key><true/>
   <key>NSHighResolutionCapable</key><true/>
+  <key>NSAppleEventsUsageDescription</key><string>Narrator reads the link of the tab you mark, so your notes for Claude say where they came from.</string>
 </dict></plist>
 PLIST
 security unlock-keychain -p "$(cat "$SIGNING/keychain-password")" "$SIGNING/narrator.keychain-db"

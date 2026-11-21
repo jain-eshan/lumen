@@ -1,4 +1,5 @@
 import AppKit
+import PDFKit
 
 // MARK: - Self-test
 
@@ -177,6 +178,123 @@ func runSelfTest() -> Int32 {
     let limited = Data(#"{"is_error":true,"result":"Claude AI usage limit reached"}"#.utf8)
     let failure: Error? = { do { _ = try ClaudeCode.structuredOutput(limited); return nil } catch { return error } }()
     check("keeps Claude's reason when a reply fails", failure.map(ClaudeCode.failureMessage)?.contains("usage limit") == true)
+    let shot = renderedTextImage(["Working capital is current assets minus current liabilities."])
+    let pdfSource = NoteSource(title: "report.pdf", app: "Preview", filePath: "/Users/you/report.pdf", pages: 9, attach: true)
+    let tabSource = NoteSource(title: "Case brief", app: "Google Chrome", link: "https://example.com/brief")
+    func part(_ text: String, _ note: String, _ source: Int = 0, textOnly: Bool = false) -> Snip { Snip(image: shot, text: text, note: note, source: source, textOnly: textOnly) }
+    let single = NoteBundle.message([part("Revenue grew.\nCosts fell.", "Why?"), part("Margins held.", "")], sources: [pdfSource], ask: "", notesFile: "report – notes.pdf")
+    check("the message names one source with its file", single.hasPrefix("I'm working through \"report.pdf\" (Preview, /Users/you/report.pdf, attached)."))
+    check("the message points at the notes file", single.contains("The attached \"report – notes.pdf\" holds my notes."))
+    check("the message asks Claude to answer each note when no request is given", single.hasSuffix("What I want: \(NoteBundle.defaultAsk)"))
+    check("the message carries what the reader wants", NoteBundle.message([part("A", "")], sources: [pdfSource], ask: " Fill the table ").hasSuffix("What I want: Fill the table"))
+    let mixed = NoteBundle.message([part("A", ""), part("B", "", 1)], sources: [pdfSource, tabSource], ask: "")
+    check("the message lists several sources", mixed.contains("through 2 documents:\n- \"report.pdf\"") && mixed.contains("- \"Case brief\""))
+    check("the message warns that a link may need a login", mixed.contains("https://example.com/brief). Claude may not be able to open this link if it needs a login."))
+    let inPage = NoteSource(title: "JD – Gameberry Labs", app: "Google Chrome", link: "blob:https://placements.isb.edu/989c")
+    check("never shares a browser's temporary blob address", !NoteBundle.message([part("A", "")], sources: [inPage], ask: "").contains("blob:") && inPage.isBrowserPDF && inPage.location.hasPrefix("Open inside a web page"))
+    let notesFolder = FileManager.default.temporaryDirectory.appendingPathComponent("narrator-notes-test-\(getpid())", isDirectory: true)
+    try? FileManager.default.createDirectory(at: notesFolder, withIntermediateDirectories: true)
+    let notesTarget = notesFolder.appendingPathComponent("JD – notes.pdf")
+    let notesMade = NoteBundle.notesPDF([0, 1, 2], of: [part("Revenue grew.\nCosts fell.", "Why?"), part("", ""), part("Margins held.", "Check", textOnly: true)], sources: [inPage], ask: "Fill the table", to: notesTarget)
+    let notesDoc = PDFDocument(url: notesTarget)
+    let pageText = (0..<(notesDoc?.pageCount ?? 0)).map { notesDoc?.page(at: $0)?.string ?? "" }
+    check("the notes file has a first page and a page per part", notesMade && pageText.count == 4)
+    check("the notes file's first page says what the reader wants", pageText.first?.contains("What I want: Fill the table") == true && pageText.first?.contains("I marked 3 parts") == true)
+    check("each part's page has its text and note", pageText.count == 4 && pageText[1].contains("Part 1") && pageText[1].contains("My note: Why?") && pageText[1].contains("Revenue grew. Costs fell."))
+    check("a part with no text or note says so", pageText.count == 4 && pageText[2].contains("No note") && pageText[2].contains("No text found"))
+    check("a text-only part is marked", pageText.count == 4 && pageText[3].contains("text only"))
+    check("names the notes file after the document, safely", NoteBundle.freeName(base: "JD – PM / APM: Gameberry.pdf", in: notesFolder).lastPathComponent == "JD – PM - APM- Gameberry – notes.pdf")
+    try? FileManager.default.removeItem(at: notesFolder)
+    let small = NoteBundle.shrink(shot, by: 2)
+    check("shrinks a Retina capture to half on each side", small.width == shot.width / 2 && small.height == shot.height / 2)
+    let badged = NoteBundle.numbered(small, 3)
+    check("stamps the part number in the top-left corner", (badged.colorAt(x: 20, y: 26)?.blueComponent ?? 1) < 0.5)
+    check("starts a large file unattached", NoteSource(title: "", app: "", pages: 150).isLarge && NoteSource(title: "", app: "", bytes: 40_000_000).isLarge && !pdfSource.isLarge)
+    check("tells the token cost of attaching a file", pdfSource.attachDetail == "9 pages, about 18,000 tokens")
+
+    // A three-page PDF with real text, the way a document app saves one.
+    let pdfFolder = FileManager.default.temporaryDirectory.appendingPathComponent("narrator-selftest-\(getpid())", isDirectory: true)
+    try? FileManager.default.createDirectory(at: pdfFolder, withIntermediateDirectories: true)
+    let original = pdfFolder.appendingPathComponent("Case.pdf")
+    var pageBox = CGRect(x: 0, y: 0, width: 612, height: 792)
+    if let writer = CGContext(original as CFURL, mediaBox: &pageBox, nil) {
+        let pagesText = [["Enterprise search take home", "Sales reps use search to find customer data."],
+                         ["Support tickets about search have tripled this year.", "Can't find customer info is the top complaint."],
+                         ["Tools and metrics you expect to be around.", "Describe how you will investigate this issue."]]
+        for lines in pagesText {
+            writer.beginPDFPage(nil)
+            NSGraphicsContext.current = NSGraphicsContext(cgContext: writer, flipped: false)
+            for (row, text) in lines.enumerated() {
+                (text as NSString).draw(at: NSPoint(x: 72, y: 700 - row * 30), withAttributes: [.font: NSFont.systemFont(ofSize: 14)])
+            }
+            writer.endPDFPage()
+        }
+        writer.closePDF()
+    }
+    let case3 = PDFDocument(url: original)
+    check("finds a marked part on the right page of a PDF", case3.flatMap { NoteBundle.locate("Support tickets about search have tripled this year.\nCan't find customer info is the top complaint.", in: $0) }.map { case3!.index(for: $0.page) } == 1)
+    check("does not place a part that is not in the PDF", case3.flatMap { NoteBundle.locate("This sentence appears nowhere in the file at all.", in: $0) } == nil)
+    let target = pdfFolder.appendingPathComponent("Case – notes.pdf")
+    let made = NoteBundle.annotatedCopy(of: original.path, title: "Case.pdf", notes: [(1, "Support tickets about search have tripled this year.", "Tripled from what base?"), (2, "Nothing like this is in the file anywhere.", "Lost")], ask: "", to: target)
+    let marked = PDFDocument(url: target)
+    check("annotated copy places only the notes it can find", made?.placed == [1])
+    check("annotated copy starts with a notes page Claude can read", marked?.pageCount == 4 && marked?.page(at: 0)?.string?.contains("1. Page 2") == true && marked?.page(at: 0)?.string?.contains("My note: Tripled from what base?") == true)
+    check("annotated copy highlights the spot", marked?.page(at: 2)?.annotations.contains { $0.type == "Highlight" } == true)
+    check("the original PDF is left untouched", PDFDocument(url: original)?.pageCount == 3 && PDFDocument(url: original)?.page(at: 1)?.annotations.isEmpty == true)
+    check("names a copy without overwriting an existing file", NoteBundle.freeName(for: original.path, in: pdfFolder).lastPathComponent == "Case – notes 2.pdf")
+    let caseSource = NoteSource(title: "Case.pdf", app: "Preview", filePath: original.path, pages: 3, attach: true)
+    let withCopy = NoteBundle.message([part("Support tickets", "Tripled from what base?")], sources: [caseSource], ask: "", annotated: [0: "Case – notes.pdf"])
+    check("the message points at the annotated copy", withCopy.contains("The attached \"Case – notes.pdf\" is this document with my notes added") && !withCopy.contains(", attached") && !withCopy.contains("holds my notes"))
+    check("knows a PDF open in a browser", NoteSource(title: "Take home 2.pdf", app: "Google Chrome", link: "https://example.com/x.pdf").isBrowserPDF && !caseSource.isBrowserPDF)
+    var opened = NoteSource(title: "Case.pdf", app: "Google Chrome")
+    opened.useAddress(original.absoluteString)
+    check("treats a file opened in a browser as the file", opened.filePath == original.path && opened.link == nil && opened.pages == 3 && opened.attach && !opened.isBrowserPDF)
+    var localDoc = NoteSource(title: "", app: "Safari")
+    localDoc.useAddress("file:///tmp/Take%20home%202.docx")
+    check("reads a file address with spaces", localDoc.filePath == "/tmp/Take home 2.docx")
+    var web = NoteSource(title: "Brief", app: "Safari")
+    web.useAddress("https://example.com/brief.pdf")
+    check("keeps a web address as a link", web.link == "https://example.com/brief.pdf" && web.filePath == nil && web.isBrowserPDF)
+    try? FileManager.default.removeItem(at: pdfFolder)
+
+    let realHistory = NoteHistory.folder
+    NoteHistory.folder = FileManager.default.temporaryDirectory.appendingPathComponent("narrator-history-test-\(getpid())", isDirectory: true)
+    let keptPart = part("Support tickets tripled.", "From what base?")
+    NoteHistory.save(SavedSet(id: "test-set", created: Date(), updated: Date(), sources: [pdfSource], parts: [SavedPart(id: keptPart.id, text: keptPart.text, note: keptPart.note, source: 0, textOnly: false)], ask: "Fill the table", copied: false, saved: [:]), snips: [keptPart])
+    let reloaded = NoteHistory.load("test-set")
+    check("history keeps a set with its notes and pictures", reloaded?.snips.first?.note == "From what base?" && reloaded?.snips.first?.image.width == shot.width && reloaded?.set.ask == "Fill the table")
+    check("history names a set after its document", NoteHistory.sets().first?.name == "report.pdf")
+    NoteHistory.logReading(app: "Google Chrome", title: "Case brief", at: Date().addingTimeInterval(-40 * 86_400))
+    NoteHistory.logReading(app: "Preview", title: "report.pdf")
+    check("history logs reading by app and title only", NoteHistory.reading().map(\.app) == ["Preview", "Google Chrome"])
+    NoteHistory.prune(now: Date())
+    check("history drops reading older than 30 days", NoteHistory.reading().map(\.app) == ["Preview"] && NoteHistory.sets().count == 1)
+    NoteHistory.prune(now: Date().addingTimeInterval(31 * 86_400))
+    check("history drops a set untouched for 30 days", NoteHistory.sets().isEmpty)
+    try? FileManager.default.removeItem(at: NoteHistory.folder)
+    NoteHistory.folder = realHistory
+
+    // A scroll the selector hands on can come straight back before it has stepped aside. It must not be handed on again.
+    var handedOn = 0
+    let realHandOn = SelectionView.handOn
+    SelectionView.handOn = { _ in handedOn += 1 }
+    let selectorWindow = NSWindow(contentRect: NSRect(x: -4000, y: -4000, width: 200, height: 200), styleMask: [.borderless], backing: .buffered, defer: false)
+    let selector = SelectionView(frame: NSRect(x: 0, y: 0, width: 200, height: 200))
+    selectorWindow.contentView = selector
+    func wheel(tagged: Bool) -> NSEvent {
+        let scroll = CGEvent(scrollWheelEvent2Source: nil, units: .pixel, wheelCount: 1, wheel1: -20, wheel2: 0, wheel3: 0)!
+        if tagged { scroll.setIntegerValueField(.eventSourceUserData, value: SelectionView.handedOn) }
+        return NSEvent(cgEvent: scroll)!
+    }
+    selector.scrollWheel(with: wheel(tagged: false))
+    selector.scrollWheel(with: wheel(tagged: true))
+    selector.scrollWheel(with: wheel(tagged: false))
+    check("the selector hands a scroll on once and drops one that bounces back", handedOn == 1 && selectorWindow.ignoresMouseEvents)
+    selectorWindow.ignoresMouseEvents = false
+    selector.scrollWheel(with: wheel(tagged: true))
+    check("the selector never hands on its own scroll again", handedOn == 1)
+    SelectionView.handOn = realHandOn
+
     print(failures == 0 ? "All self-tests passed" : "\(failures) self-tests failed")
     return failures == 0 ? 0 : 1
 }
