@@ -1,28 +1,28 @@
 #!/bin/zsh
-# Builds Narrator.app. The first build, or --full, also packs the voice engine and model inside the app.
+# Builds Lumen.app. The first build, or --full, also packs the voice engine and model inside the app.
 set -euo pipefail
 APP_SRC="${0:A:h}"
 LAB="${APP_SRC:h}"
-BUNDLE="$LAB/Narrator.app"
+BUNDLE="$LAB/Lumen.app"
 RES="$BUNDLE/Contents/Resources"
 SIGNING="$LAB/.signing"
 [[ "${1:-}" == "--full" ]] && rm -rf "$BUNDLE"
 mkdir -p "$BUNDLE/Contents/MacOS" "$RES"
-swiftc -O "$APP_SRC"/*.swift -o "$BUNDLE/Contents/MacOS/Narrator"
+swiftc -O "$APP_SRC"/*.swift -o "$BUNDLE/Contents/MacOS/Lumen"
 cp "$LAB/scripts/kokoro_server.py" "$RES/kokoro_server.py"
 cat > "$BUNDLE/Contents/Info.plist" <<'PLIST'
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0"><dict>
-  <key>CFBundleExecutable</key><string>Narrator</string>
+  <key>CFBundleExecutable</key><string>Lumen</string>
   <key>CFBundleIdentifier</key><string>local.narrator.app</string>
-  <key>CFBundleName</key><string>Narrator</string>
-  <key>CFBundleDisplayName</key><string>Narrator</string>
+  <key>CFBundleName</key><string>Lumen</string>
+  <key>CFBundleDisplayName</key><string>Lumen</string>
   <key>CFBundleIconFile</key><string>AppIcon</string>
   <key>CFBundlePackageType</key><string>APPL</string>
-  <key>CFBundleShortVersionString</key><string>1.3.1</string>
-  <key>CFBundleVersion</key><string>5</string>
-  <key>NSHumanReadableCopyright</key><string>Narrator, your AI reading agent. Read more, without reading. GPL-3.0.</string>
+  <key>CFBundleShortVersionString</key><string>1.3.2</string>
+  <key>CFBundleVersion</key><string>6</string>
+  <key>NSHumanReadableCopyright</key><string>Lumen, the reading moth for Mac. Formerly Narrator. GPL-3.0.</string>
   <key>LSMinimumSystemVersion</key><string>14.0</string>
   <key>LSArchitecturePriority</key><array><string>arm64</string></array>
   <key>LSUIElement</key><true/>
@@ -35,9 +35,10 @@ sign() { codesign --force --sign "$(cat "$SIGNING/identity")" --keychain "$SIGNI
 # Lumen's poses, made by art/cutout.swift from the generated pose sheet.
 rm -rf "$RES/lumen" && cp -R "$APP_SRC/lumen" "$RES/lumen"
 
-if [[ ! -f "$RES/AppIcon.icns" || "$APP_SRC/lumen/read.png" -nt "$RES/AppIcon.icns" ]]; then
+# The app keeps its first ID, local.narrator.app, so people who update keep their settings and permissions.
+if [[ ! -f "$RES/AppIcon.icns" || "$LAB/brand/lumen-icon.png" -nt "$RES/AppIcon.icns" ]]; then
   ICONS=$(mktemp -d)
-  "$BUNDLE/Contents/MacOS/Narrator" --render-icon="$ICONS/icon.png"
+  cp "$LAB/brand/lumen-icon.png" "$ICONS/icon.png"
   mkdir "$ICONS/AppIcon.iconset"
   for size in 16 32 128 256 512; do
     sips -z $size $size "$ICONS/icon.png" --out "$ICONS/AppIcon.iconset/icon_${size}x${size}.png" >/dev/null

@@ -1,4 +1,4 @@
-"""Kokoro speech service for Narrator.
+"""Kokoro speech service for Lumen.
 
 Reads one JSON request per line on stdin: {"id": 1, "text": "...", "voice": "af_heart"}
 Writes one JSON reply per line on stdout: {"id": 1, "path": "/tmp/...wav"} or {"id": 1, "error": "..."}

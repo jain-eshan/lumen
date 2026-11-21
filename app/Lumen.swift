@@ -183,7 +183,7 @@ final class Pet: NSObject {
         view.onHover = { [weak self] inside in self?.hover(inside) }
         view.setAccessibilityElement(true)
         view.setAccessibilityRole(.button)
-        view.setAccessibilityLabel("Lumen, Narrator's moth. Click to pick text to read.")
+        view.setAccessibilityLabel("Lumen. Click to pick text to read.")
     }
 
     var isEnabled: Bool {
@@ -290,7 +290,7 @@ final class Pet: NSObject {
     func react(to status: String) {
         let moods: [(String, PetMood)] = [
             ("Reading", .reading), ("Answer", .talking), ("Paused", .paused), ("Waiting", .paused), ("Understanding", .thinking),
-            ("Preparing", .thinking), ("Scrolling", .thinking), ("Thinking", .thinking), ("Jump", .jump), ("Following", .idle), ("Narrator", .happy),
+            ("Preparing", .thinking), ("Scrolling", .thinking), ("Thinking", .thinking), ("Jump", .jump), ("Following", .idle), ("Lumen", .happy),
         ]
         if let match = moods.first(where: { status.hasPrefix($0.0) }) { mood = match.1 }
     }

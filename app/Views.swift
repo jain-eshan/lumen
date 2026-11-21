@@ -4,8 +4,8 @@ import Carbon.HIToolbox
 // MARK: - Visual system
 
 enum Palette {
-    static let accent = NSColor(calibratedRed: 1, green: 0.78, blue: 0.16, alpha: 1)
-    static let surface = NSColor(calibratedRed: 0.07, green: 0.07, blue: 0.08, alpha: 0.97)
+    static let accent = NSColor(calibratedRed: 0.91, green: 0.64, blue: 0.24, alpha: 1)  // Lantern amber, #E8A33D
+    static let surface = NSColor(calibratedRed: 0.09, green: 0.08, blue: 0.15, alpha: 0.97)  // Night ink, #171527
     static let well = NSColor.white.withAlphaComponent(0.09)
     static let hairline = NSColor.white.withAlphaComponent(0.16)
     static let text = NSColor.white
