@@ -8,7 +8,7 @@
 
 Lumen, the reading moth for Mac, was called Narrator until version 1.3.2. Same app, new name.
 
-Lumen is a Mac menu bar app for the long stuff you were going to skip: Claude replies, articles, docs, email threads. Point it at any part of your screen and it reads it to you in a natural voice, highlighting each line as it goes. It keeps up with Claude as new replies stream in, and it answers questions about what's on screen. Lumen is also the small moth who lives on your Dock and reads along with you.
+Lumen is a Mac menu bar app for the long stuff you were going to skip: Claude replies, articles, docs, email threads. Point it at any part of your screen and it reads it to you in a natural voice, highlighting each line as it goes. It keeps up with Claude as new replies stream in, and it answers questions about what's on screen. When you want Claude's help with a document, Note for Claude lets you mark parts of it, write a thought on each, and paste them all into a chat at once. Lumen is also the small moth who lives on your Dock and reads along with you.
 
 [![Watch the 50-second demo](docs/demo-poster.jpg)](https://github.com/jain-eshan/lumen/releases/download/v1.2/narrator-demo.mp4)
 
@@ -44,9 +44,33 @@ The menu then shows **Claude connected**. Lumen only uses a Claude plan. If Clau
 - **Tables make sense.** A table is read row by row, with each value named by its column, instead of column by column.
 - **Keep up with Claude.** Follow mode reads new replies as they stream in.
 - **Jump.** Click any sentence and it carries on from there.
-- **Note for Claude.** Click Lumen and choose Note for Claude, or pick it from the menu bar. Drag over a part of any document, type or dictate your thought on it, and repeat as you scroll, up to 10 parts. Copy all puts a short message and one file on your clipboard, saved in Downloads as well. For a PDF on your Mac (open in Preview or another Mac app, or opened from Downloads in Chrome, Safari, Arc, Edge or Brave), the file is a marked-up copy: your notes highlighted and numbered where they belong, with a first page listing every note. For anything else (web pages, a document you haven't downloaded, other apps), it's a notes PDF: a first page saying what you want and where the parts come from, then a page per part with the text you marked, a numbered picture of it, and your note. Your notes travel inside the file, so they arrive wherever you paste. Paste it into any Claude chat or project. Choose History… from the menu bar or Lumen's right-click menu to see past sets and copy any of them again, and what Lumen read aloud, for the last 30 days. Your notes are saved as you go. Close the tray with × or Done and the set stays in History; Delete removes it. If Lumen quits with the tray open, the set comes back next time.
+- **Note for Claude.** Mark parts of any document, write a thought on each, and paste them all into Claude at once. See [Note for Claude](#note-for-claude) below.
 - **Ask.** Press Option + Shift + A to ask about what's on screen. Type, or dictate with any dictation app you already use, then press Return. Ask needs Claude connected, as described above.
 - **Lumen.** The moth lives on top of your Dock. It wanders and reads to itself, flies over to the icon of the app you're reading, and its mouth and lantern follow the voice. It listens while you ask, thinks while Claude works, and falls asleep after a few quiet minutes. Hover over it for a tip, click it to start or pause, or pick it up and drop it. It steps aside when your pointer is over the Dock below it. Turn it off from the menu bar, or choose Keep Lumen in one place and it stays wherever you drop it, with no wandering or following. With Reduce Motion on, it stays put.
+
+## Note for Claude
+
+1. Click Lumen and choose **Note for Claude**, or choose **Note for Claude…** from the menu bar.
+2. Drag over a part of any document, then type or dictate your thought on it. Repeat as you scroll, up to 10 parts.
+3. Click **Copy all**, then paste into any Claude chat or project.
+
+Copy all puts a short message and your notes file on your clipboard, and saves the file in Downloads too. Your notes travel inside the file, so they arrive wherever you paste.
+
+- **A PDF on your Mac** (open in Preview or another Mac app, or opened from Downloads in Chrome, Safari, Arc, Edge or Brave): the file is a marked-up copy, with your notes highlighted and numbered where they belong and a first page listing every note.
+- **Another document on your Mac** (a Word file, for example): a notes PDF, described below, with the original file attached next to it so Claude can read all of it.
+- **Anything else** (web pages, a document open in your browser that you haven't downloaded, other apps): the file is a notes PDF. Its first page says what you want and where the parts come from, then each part gets a page with the text you marked, a numbered picture of it, and your note. For a document open in your browser, Lumen tells you that downloading it gets you a marked-up copy instead.
+
+In the tray, before you copy:
+
+- **What should Claude do?** is an optional box for your request. It goes on the first page.
+- **Text only** leaves a part's picture out and sends just its text, which keeps the file small.
+- **Send marked-up copy** (for a PDF) or **Send whole file** (for other documents) starts on for a file on your Mac, unless it's over 100 pages or 30 MB. The tray shows its size in pages or megabytes, and an estimate in tokens for a PDF. Turn it off to send only the notes PDF.
+- **Remove link** keeps a browser tab's address out of what you send.
+- **Snip another** adds the next part.
+
+Note for Claude doesn't need Claude connected. It only uses your clipboard.
+
+**History.** Choose **History…** from the menu bar or Lumen's right-click menu to see your past sets and copy any of them again, along with a list of what Lumen read aloud, for the last 30 days. Notes are saved as you go: close the tray with × or Done and the set stays in History, or click Delete to remove it. If Lumen quits with the tray open, the set comes back next time.
 
 ## Shortcuts
 
@@ -142,6 +166,8 @@ The demo is a [HyperFrames](https://hyperframes.heygen.com) project in `videos/n
   - `Screen.swift`: screen capture, scrolling and window lookup
   - `Views.swift`: the selector, highlight, jump picker and shared visual style
   - `Lumen.swift`: Lumen on the Dock and its speech bubble
+  - `Notes.swift`: Note for Claude: the marked parts, the tray, and the marked-up or notes PDF
+  - `History.swift`: the History window and the 30-day store behind it
   - `App.swift`: the menu bar app that ties it all together
   - `SelfTest.swift`: checks run with `--selftest`
   - `main.swift`: starts the app

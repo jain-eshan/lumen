@@ -20,8 +20,8 @@ cat > "$BUNDLE/Contents/Info.plist" <<'PLIST'
   <key>CFBundleDisplayName</key><string>Lumen</string>
   <key>CFBundleIconFile</key><string>AppIcon</string>
   <key>CFBundlePackageType</key><string>APPL</string>
-  <key>CFBundleShortVersionString</key><string>1.3.2</string>
-  <key>CFBundleVersion</key><string>6</string>
+  <key>CFBundleShortVersionString</key><string>1.4</string>
+  <key>CFBundleVersion</key><string>7</string>
   <key>NSHumanReadableCopyright</key><string>Lumen, the reading moth for Mac. Formerly Narrator. GPL-3.0.</string>
   <key>LSMinimumSystemVersion</key><string>14.0</string>
   <key>LSArchitecturePriority</key><array><string>arm64</string></array>
