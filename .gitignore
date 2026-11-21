@@ -1,5 +1,6 @@
 .signing/
 Narrator.app/
+Lumen.app/
 dist/
 envs/
 models/

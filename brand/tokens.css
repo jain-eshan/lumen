@@ -1,0 +1,9 @@
+/* Lumen brand colours and type. See BRAND.md for how to use them. */
+:root {
+  --lumen-night-ink: #171527;
+  --lumen-moth-cream: #F3EAD8;
+  --lumen-dusk-lavender: #8E7FA6;
+  --lumen-lantern-amber: #E8A33D;
+  --lumen-font-display: "Fraunces", Georgia, serif;
+  --lumen-font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}

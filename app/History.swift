@@ -140,7 +140,7 @@ final class HistoryWindow: NSObject {
     func show() {
         if window == nil {
             let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 520, height: 560), styleMask: [.titled, .closable, .resizable], backing: .buffered, defer: false)
-            window.title = "Narrator History"
+            window.title = "Lumen History"
             window.appearance = NSAppearance(named: .darkAqua)
             window.backgroundColor = Palette.surface
             window.isReleasedWhenClosed = false

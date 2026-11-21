@@ -119,9 +119,9 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
             return
         }
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
-        item.button?.image = NSImage(systemSymbolName: "waveform", accessibilityDescription: "Narrator")
+        item.button?.image = NSImage(systemSymbolName: "waveform", accessibilityDescription: "Lumen")
         let menu = NSMenu()
-        let brand = menu.addItem(withTitle: "Narrator, your AI reading agent", action: nil, keyEquivalent: "")
+        let brand = menu.addItem(withTitle: "Lumen reads to you", action: nil, keyEquivalent: "")
         brand.isEnabled = false
         menu.addItem(.separator())
         menu.addItem(withTitle: "Select an area to read", action: #selector(beginSelection), keyEquivalent: "")
@@ -141,7 +141,7 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
         claudeMenuItem = menu.addItem(withTitle: "Connect Claude…", action: #selector(connectClaude), keyEquivalent: "")
         richerVoiceItem = menu.addItem(withTitle: "Richer voice with Claude (uses your Claude plan)", action: #selector(toggleClaudeDirection(_:)), keyEquivalent: "")
         menu.addItem(.separator())
-        menu.addItem(withTitle: "Quit Narrator", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "")
+        menu.addItem(withTitle: "Quit Lumen", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "")
         menu.items.filter { $0.action != nil && $0.action != #selector(NSApplication.terminate(_:)) }.forEach { $0.target = self }
         item.menu = menu
         statusItem = item
@@ -299,7 +299,7 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
         onboarding = true
         pet.show(swooping: true)
         pet.mood = .happy
-        pet.say("Hi, I'm Lumen, the face of Narrator, your AI reading agent. Point me at anything on your screen and I'll read it to you.", actions: [
+        pet.say("Hi, I'm Lumen. Point me at anything on your screen and I'll read it to you.", actions: [
             ("Show me", { [weak self] in self?.continueSetup() }),
             ("Later", { [weak self] in self?.finishSetup() }),
         ])
@@ -307,7 +307,7 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
             await self?.speech.waitUntilReady()
             guard let self, self.onboarding, self.narration == nil, !self.isAskBusy else { return }
             self.pet.mood = .talking
-            await self.say("Hi, I'm Lumen. Read more, without reading. Point me at anything and I'll read it to you.")
+            await self.say("Hi, I'm Lumen. Point me at anything and I'll read it to you.")
             if self.pet.mood == .talking { self.pet.mood = .happy }
         }
     }
@@ -318,19 +318,19 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
         pet.show()
         if !CGPreflightScreenCaptureAccess() {
             pet.mood = .listening
-            pet.say("First, I need to see your screen. Switch on Narrator in Screen Recording, then reopen me.", actions: [
+            pet.say("First, I need to see your screen. Switch on Lumen in Screen Recording, then reopen me.", actions: [
                 ("Open settings", { [weak self] in
                     CGRequestScreenCaptureAccess()
                     NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture")!)
-                    self?.pet.say("When Narrator is switched on, reopen me so the change takes effect.", actions: [("Reopen Narrator", { self?.relaunch() })])
+                    self?.pet.say("When Lumen is switched on, reopen me so the change takes effect.", actions: [("Reopen Lumen", { self?.relaunch() })])
                 }),
-                ("Reopen Narrator", { [weak self] in self?.relaunch() }),
+                ("Reopen Lumen", { [weak self] in self?.relaunch() }),
             ])
             return
         }
         if !AXIsProcessTrusted() {
             pet.mood = .listening
-            pet.say("Next, let me scroll pages and hear your shortcuts. Switch on Narrator in Accessibility.", actions: [
+            pet.say("Next, let me scroll pages and hear your shortcuts. Switch on Lumen in Accessibility.", actions: [
                 ("Open settings", { [weak self] in
                     AXIsProcessTrustedWithOptions([kAXTrustedCheckOptionPrompt.takeUnretainedValue(): true] as CFDictionary)
                     NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!)
@@ -447,10 +447,10 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
             let lines = [
                 "#!/bin/zsh",
                 "unset ANTHROPIC_API_KEY ANTHROPIC_AUTH_TOKEN",
-                "echo 'Narrator: sign in to Claude in the browser window that opens.'",
+                "echo 'Lumen: sign in to Claude in the browser window that opens.'",
                 "'\(path)' auth login --claudeai",
                 "echo",
-                "echo 'Done. You can close this window and go back to Narrator.'",
+                "echo 'Done. You can close this window and go back to Lumen.'",
             ]
             try (lines.joined(separator: "\n") + "\n").write(to: script, atomically: true, encoding: .utf8)
             try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: script.path)
@@ -1010,7 +1010,7 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
     private func finishAsk(_ message: String?) {
         isAnswering = false
         askTask = nil
-        if let message { setStatus("Narrator", message) }
+        if let message { setStatus("Lumen", message) }
         if pausedForAsk {
             pausedForAsk = false
             resumePending = true
@@ -1333,7 +1333,7 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
         let key = "explainedLink." + id
         guard !UserDefaults.standard.bool(forKey: key) else { return }
         UserDefaults.standard.set(true, forKey: key)
-        tell("To include this tab's link, macOS will ask if Narrator can control \(window.owner). Allow it once.")
+        tell("To include this tab's link, macOS will ask if Lumen can control \(window.owner). Allow it once.")
     }
 
     /// Lumen says it, or the bar does when Lumen is turned off.
@@ -1518,7 +1518,7 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
             return
         } catch {
             note("reading stopped: \(error)")
-            endReading(CGPreflightScreenCaptureAccess() ? "Narrator stopped unexpectedly. Select the area again to retry." : "Allow Screen Recording for Narrator in System Settings, then reopen it.")
+            endReading(CGPreflightScreenCaptureAccess() ? "Lumen stopped unexpectedly. Select the area again to retry." : "Allow Screen Recording for Lumen in System Settings, then reopen it.")
         }
     }
 
@@ -1990,7 +1990,7 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
     }
 
     private func showMessage(_ text: String) {
-        showBar(status: "Narrator", text)
+        showBar(status: "Lumen", text)
         hideBar(after: 4)
     }
 
@@ -2104,7 +2104,7 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
             lumen.dots = pose == "think" ? 2 : 0
             save(lumen, "lumen-\(pose)")
         }
-        save(Pet.bubbleContent("Hi, I'm Lumen, the face of Narrator, your AI reading agent. Point me at anything on your screen and I'll read it to you.", buttons: ["Show me", "Later"], target: nil, action: nil), "lumen-bubble")
+        save(Pet.bubbleContent("Hi, I'm Lumen. Point me at anything on your screen and I'll read it to you.", buttons: ["Show me", "Later"], target: nil, action: nil), "lumen-bubble")
         let overlay = SelectionView(frame: NSRect(x: 0, y: 0, width: 1200, height: 700))
         overlay.hover = NSRect(x: 260, y: 120, width: 680, height: 430)
         save(overlay, "selector")
