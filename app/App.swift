@@ -97,6 +97,15 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
     private var closeButton: ControlButton?
     private var sourceButton: ControlButton?
     private var isSimulatingAsk = false
+    private let notes = NoteTray()
+    private let history = HistoryWindow()
+    private var isNoting = false
+    private var notePanel: OverlayPanel?
+    private var pendingNote: (snip: Snip, source: Task<NoteSource, Never>, screen: NSScreen)?
+    private var noteReturnApp: NSRunningApplication?
+    private var toldAboutBrowserPDF = false
+    private var noteBoxOrigin: NSPoint?
+    private var noteBoxCorner: NSPoint?
 
     private var currentRect: CGRect { readingRect ?? .zero }
     private var isSettling: Bool { Date().timeIntervalSince(lastWindowMove) < 0.4 }
@@ -116,6 +125,8 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
         brand.isEnabled = false
         menu.addItem(.separator())
         menu.addItem(withTitle: "Select an area to read", action: #selector(beginSelection), keyEquivalent: "")
+        menu.addItem(withTitle: "Note for Claude…", action: #selector(beginNote), keyEquivalent: "")
+        menu.addItem(withTitle: "History…", action: #selector(showHistory), keyEquivalent: "")
         menu.addItem(withTitle: "Play or pause", action: #selector(togglePause), keyEquivalent: "")
         menu.addItem(withTitle: "Stop reading", action: #selector(stopReading), keyEquivalent: "")
         menu.addItem(withTitle: "Open last source", action: #selector(openSource), keyEquivalent: "")
@@ -138,6 +149,18 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
         speed = speeds.contains(saved) ? saved : 1
 
         Task { await refreshClaudeSetup() }
+        NoteHistory.prune()
+        history.onCopyAgain = { [weak self] id in self?.copyAgain(id) }
+        notes.onSnipAnother = { [weak self] in self?.beginNote() }
+        notes.onCopied = { [weak self] count, files in
+            let saved = files.isEmpty ? "" : " I also saved \(files.joined(separator: " and ")) in Downloads."
+            self?.tell("Copied \(count == 1 ? "1 note" : "\(count) notes"). Paste them into any Claude chat.\(saved)")
+            self?.history.refresh()
+        }
+        // Lets a test save annotated copies somewhere other than Downloads.
+        if let folder = CommandLine.arguments.first(where: { $0.hasPrefix("--test-note-save=") }) {
+            notes.saveFolder = URL(fileURLWithPath: String(folder.dropFirst("--test-note-save=".count)), isDirectory: true)
+        }
         registerShortcuts()
         watchInput()
         note("launched; screen recording \(CGPreflightScreenCaptureAccess()), accessibility \(AXIsProcessTrusted())")
@@ -148,6 +171,7 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
             showMessage("Kokoro could not start")
         }
         setUpPet()
+        restoreUnfinishedNotes()
         // Lets a test read a known area without using the selector.
         if let argument = CommandLine.arguments.first(where: { $0.hasPrefix("--read-rect=") }) {
             let values = argument.dropFirst("--read-rect=".count).split(separator: ",").compactMap { Double($0) }
@@ -155,6 +179,15 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
                 let purpose = CommandLine.arguments.first { $0.hasPrefix("--purpose=") }?.dropFirst("--purpose=".count) ?? ""
                 previousApp = NSWorkspace.shared.frontmostApplication
                 startReading(CGRect(x: values[0], y: values[1], width: values[2], height: values[3]), purpose: String(purpose))
+            }
+        }
+        // Lets a test mark a known area for Claude without the selector: --test-note=x,y,width,height in screen points.
+        if let argument = CommandLine.arguments.first(where: { $0.hasPrefix("--test-note=") }) {
+            let values = argument.dropFirst("--test-note=".count).split(separator: ",").compactMap { Double($0) }
+            if values.count == 4 {
+                isNoting = true
+                noteReturnApp = NSWorkspace.shared.frontmostApplication
+                snipNote(bottomLeftRect(from: CGRect(x: values[0], y: values[1], width: values[2], height: values[3])))
             }
         }
         // Lets a test ask a recorded question at a set moment without using the microphone.
@@ -242,12 +275,23 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
         return min(max((sound.averagePower(forChannel: 0) + 42) / 36, 0), 1)
     }
 
+    /// A click on Lumen first closes whatever it opened, so it works as a toggle.
     private func petClicked() {
-        if narration != nil {
+        if notePanel != nil || pendingNote != nil {
+            cancelNote()
+        } else if purposePanel != nil {
+            closeSelectionUI()
+        } else if askPanel != nil, !isAnswering {
+            cancelAsk()
+        } else if pet.isAsking {
+            pet.hideBubble()
+        } else if narration != nil {
             togglePause()
         } else if !isAskBusy {
-            pet.hideBubble()
-            beginSelection()
+            pet.say("Read it to you, or take notes for Claude?", actions: [
+                ("Read to me", { [weak self] in self?.beginSelection() }),
+                ("Note for Claude", { [weak self] in self?.beginNote() }),
+            ])
         }
     }
 
@@ -1104,13 +1148,30 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
         if isAskBusy { cancelAsk() }
         if narration != nil { endReading("Stopped") }
         closeSelectionUI()
+        isNoting = false
         previousApp = NSWorkspace.shared.frontmostApplication
+        openSelector(hint: "Scroll to find it, then drag over what to read or click a window    Esc to cancel")
+    }
+
+    /// Starts marking a part for Claude. Reading carries on, since taking a note shouldn't stop it.
+    @objc func beginNote() {
+        guard !notes.isFull else { return tell("That's \(NoteBundle.limit) parts, the most one set can hold. Copy them first.") }
+        if isAskBusy { cancelAsk() }
+        closeSelectionUI()
+        cancelNote()
+        isNoting = true
+        if let front = NSWorkspace.shared.frontmostApplication, front.processIdentifier != getpid() { noteReturnApp = front }
+        openSelector(hint: "Scroll to find it, then drag over the part you want to note    Esc to cancel")
+    }
+
+    private func openSelector(hint: String) {
         NSApp.activate(ignoringOtherApps: true)
         overlays = NSScreen.screens.map { screen in
             let panel = OverlayPanel(floatingAt: .screenSaver, frame: screen.frame)
             panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
             panel.ignoresMouseEvents = false
             let view = SelectionView(frame: NSRect(origin: .zero, size: screen.frame.size))
+            view.hint = hint
             view.onFinish = { [weak self] rect in self?.finishSelection(rect) }
             panel.contentView = view
             panel.makeKeyAndOrderFront(nil)
@@ -1131,9 +1192,164 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
     private func finishSelection(_ rect: NSRect?) {
         note("selection: finished with \(rect.map { "\(Int($0.width))x\(Int($0.height))" } ?? "nothing")")
         closeSelectionUI()
-        guard let rect, rect.width >= 8, rect.height >= 8 else { return }
+        guard let rect, rect.width >= 8, rect.height >= 8 else {
+            if isNoting { noteReturnApp?.activate() }
+            return
+        }
+        if isNoting { return snipNote(rect) }
         selectedRect = topLeftRect(from: rect)
         askPurpose(near: rect)
+    }
+
+    // MARK: Note for Claude
+
+    /// Captures the marked part, reads its text, then asks for the reader's thought on it.
+    private func snipNote(_ rect: NSRect) {
+        let area = topLeftRect(from: rect)
+        let screen = NSScreen.screens.first { $0.frame.intersects(rect) } ?? NSScreen.main ?? NSScreen.screens[0]
+        let window = topWindow(at: CGPoint(x: area.midX, y: area.midY))
+        Task { [weak self] in
+            guard let self else { return }
+            do {
+                let image = try await capture(area)
+                let lines = try await recognizeLines(in: image)
+                self.explainLinkPermission(for: window)
+                // Finding the link can wait on a permission prompt, so it runs while the note is written.
+                let source = Task {
+                    var found = await noteSource(for: window)
+                    // Lets a test name the open file, since a test build may not have the Accessibility permission.
+                    if let file = CommandLine.arguments.first(where: { $0.hasPrefix("--test-note-file=") }) { found.useFile(String(file.dropFirst("--test-note-file=".count))) }
+                    return found
+                }
+                let snip = Snip(image: NoteBundle.shrink(image, by: CGFloat(image.width) / area.width), text: lines.map(\.text).joined(separator: "\n"), note: "", source: 0)
+                self.pendingNote = (snip, source, screen)
+                self.askForNote(near: rect)
+            } catch {
+                note("notes: capture failed: \(error)")
+                self.tell("I couldn't capture that area. Try again.")
+                self.noteReturnApp?.activate()
+            }
+        }
+    }
+
+    private func noteBoxContent() -> (view: SurfaceView, field: PurposeField) {
+        let background = SurfaceView(frame: NSRect(x: 0, y: 0, width: 360, height: 92))
+        let field = textBox(in: background, y: 38, placeholder: "Your thought on this part (optional)", label: "Your note for Claude",
+                            action: #selector(noteEntered(_:)), onCancel: { [weak self] in self?.cancelNote() })
+        _ = hintLine("Return to add    Esc to skip    Drag here to move", in: background, y: 12)
+        return (background, field)
+    }
+
+    private func askForNote(near rect: NSRect) {
+        let content = noteBoxContent()
+        let size = content.view.frame.size
+        let screen = NSScreen.screens.first { $0.frame.intersects(rect) } ?? NSScreen.main ?? NSScreen.screens[0]
+        // The top right keeps the part just marked in view. Once the reader drags the box elsewhere, it opens there instead.
+        let corner = NSPoint(x: screen.visibleFrame.maxX - size.width - 16, y: screen.visibleFrame.maxY - size.height - 16)
+        let origin = noteBoxOrigin.flatMap { point in NSScreen.screens.contains { $0.visibleFrame.contains(NSRect(origin: point, size: size)) } ? point : nil } ?? corner
+        noteBoxCorner = corner
+        let panel = OverlayPanel(floatingAt: .screenSaver, frame: NSRect(origin: origin, size: size))
+        panel.isMovableByWindowBackground = true
+        panel.hasShadow = true
+        panel.appearance = NSAppearance(named: .darkAqua)
+        panel.contentView = content.view
+        notePanel = panel
+        // Lets a test write the note without typing.
+        if let typed = CommandLine.arguments.first(where: { $0.hasPrefix("--test-note-text=") }) {
+            content.field.stringValue = String(typed.dropFirst("--test-note-text=".count))
+            return noteEntered(content.field)
+        }
+        NSApp.activate(ignoringOtherApps: true)
+        panel.makeKeyAndOrderFront(nil)
+        panel.makeFirstResponder(content.field)
+    }
+
+    @objc private func noteEntered(_ sender: NSTextField) {
+        guard let pending = pendingNote else { return cancelNote() }
+        var snip = pending.snip
+        snip.note = sender.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        pendingNote = nil
+        closeNoteBox()
+        noteReturnApp?.activate()
+        Task { [weak self] in
+            let source = await pending.source.value
+            guard let self else { return }
+            self.notes.add(snip, from: source, on: pending.screen)
+            if source.isBrowserPDF, !self.toldAboutBrowserPDF {
+                self.toldAboutBrowserPDF = true
+                self.tell("This document is open inside your browser, so I can only take pictures of the parts you mark. To send Claude the whole document, download it and open the download, and I'll mark up the file itself.")
+            }
+            if CommandLine.arguments.contains("--test-note-copy") { self.notes.copyAll() }
+        }
+    }
+
+    @objc private func showHistory() { history.show() }
+
+    /// Brings back a set that was still being worked on when Narrator last quit.
+    private func restoreUnfinishedNotes() {
+        guard let id = UserDefaults.standard.string(forKey: NoteTray.openSetKey), let saved = NoteHistory.load(id), !saved.snips.isEmpty else { return }
+        notes.restore(saved.set, snips: saved.snips, on: NSScreen.main ?? NSScreen.screens[0])
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3) { [weak self] in
+            self?.tell("I kept the \(saved.snips.count == 1 ? "note" : "\(saved.snips.count) notes") you were working on. They're in the tray.")
+        }
+    }
+
+    /// Puts a past set back on the clipboard from the History window.
+    private func copyAgain(_ id: String) {
+        if notes.setID == id { return notes.copyAll() }
+        guard var saved = NoteHistory.load(id), !saved.snips.isEmpty else { return tell("I couldn't open those notes.") }
+        do {
+            saved.set.saved = try NoteBundle.copy(saved.snips, sources: saved.set.sources, ask: saved.set.ask, savingIn: notes.saveFolder, replacing: saved.set.saved)
+        } catch {
+            note("history: copy again failed: \(error)")
+            return tell("I couldn't copy those notes.")
+        }
+        saved.set.copied = true
+        saved.set.updated = Date()
+        NoteHistory.save(saved.set, snips: saved.snips)
+        history.refresh()
+        tell("Copied \(saved.snips.count == 1 ? "1 note" : "\(saved.snips.count) notes") again. Paste them into any Claude chat.")
+    }
+
+    /// Closes the note box without keeping the part.
+    private func cancelNote() {
+        guard notePanel != nil || pendingNote != nil else { return }
+        pendingNote?.source.cancel()
+        pendingNote = nil
+        closeNoteBox()
+        noteReturnApp?.activate()
+    }
+
+    /// Remembers where the reader dragged the box, then closes it.
+    private func closeNoteBox() {
+        if let origin = notePanel?.frame.origin, origin != noteBoxCorner { noteBoxOrigin = origin }
+        notePanel?.orderOut(nil)
+        notePanel = nil
+    }
+
+    /// The first time a browser is asked for its tab's link, macOS asks the reader to allow it, so Lumen says why first.
+    private func explainLinkPermission(for window: WatchedWindow?) {
+        guard let window, let id = NSRunningApplication(processIdentifier: window.pid)?.bundleIdentifier, browserTabAddress[id] != nil else { return }
+        let key = "explainedLink." + id
+        guard !UserDefaults.standard.bool(forKey: key) else { return }
+        UserDefaults.standard.set(true, forKey: key)
+        tell("To include this tab's link, macOS will ask if Lumen can control \(window.owner). Allow it once.")
+    }
+
+    /// Lumen says it, or the bar does when Lumen is turned off.
+    private func tell(_ text: String) {
+        guard pet.isEnabled else { return showMessage(text) }
+        pet.show()
+        pet.say(text, hideAfter: 7)
+    }
+
+    /// Places a box just below an area, or above it when there is no room below.
+    private func boxFrame(_ size: NSSize, near rect: NSRect) -> NSRect {
+        let screen = NSScreen.screens.first { $0.frame.intersects(rect) } ?? NSScreen.main ?? NSScreen.screens[0]
+        let x = min(max(rect.minX, screen.visibleFrame.minX + 12), screen.visibleFrame.maxX - size.width - 12)
+        let below = rect.minY - size.height - 10
+        let y = below > screen.visibleFrame.minY ? below : min(rect.maxY + 10, screen.visibleFrame.maxY - size.height)
+        return NSRect(x: x, y: y, width: size.width, height: size.height)
     }
 
     private func purposeContent(purpose: String) -> (view: SurfaceView, field: PurposeField) {
@@ -1206,13 +1422,8 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
     }
 
     private func askPurpose(near rect: NSRect) {
-        let screen = NSScreen.screens.first { $0.frame.intersects(rect) } ?? NSScreen.main ?? NSScreen.screens[0]
         let content = purposeContent(purpose: UserDefaults.standard.string(forKey: purposeKey) ?? "")
-        let size = content.view.frame.size
-        let x = min(max(rect.minX, screen.visibleFrame.minX + 12), screen.visibleFrame.maxX - size.width - 12)
-        let below = rect.minY - size.height - 10
-        let y = below > screen.visibleFrame.minY ? below : min(rect.maxY + 10, screen.visibleFrame.maxY - size.height)
-        let panel = OverlayPanel(floatingAt: .screenSaver, frame: NSRect(x: x, y: y, width: size.width, height: size.height))
+        let panel = OverlayPanel(floatingAt: .screenSaver, frame: boxFrame(content.view.frame.size, near: rect))
         panel.hasShadow = true
         panel.appearance = NSAppearance(named: .darkAqua)
         panel.contentView = content.view
@@ -1258,6 +1469,7 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
         readingRect = rect
         showHighlight(over: rect)
         watchWindow(under: rect)
+        NoteHistory.logReading(app: watchedWindow?.owner ?? previousApp?.localizedName ?? "", title: watchedWindow?.title ?? "")
         followNew = startAtEnd || looksLikeChat(owner: watchedWindow?.owner ?? "", title: watchedWindow?.title ?? "", purpose: purpose)
         note("window app \(watchedWindow?.owner ?? "none"), follow \(followNew ? "on" : "off")")
         spareHelper?.stop()
@@ -1896,5 +2108,16 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
         let overlay = SelectionView(frame: NSRect(x: 0, y: 0, width: 1200, height: 700))
         overlay.hover = NSRect(x: 260, y: 120, width: 680, height: 430)
         save(overlay, "selector")
+        save(Pet.bubbleContent("Read it to you, or take notes for Claude?", buttons: ["Read to me", "Note for Claude"], target: nil, action: nil), "lumen-choice")
+        save(noteBoxContent().view, "note-box")
+        notes.keepsHistory = false
+        let page = renderedTextImage(["You're a PM at SalesCRM, a Salesforce competitor", "with 5,000 employees. You own in-app search."])
+        let screen = NSScreen.screens[0]
+        notes.add(Snip(image: NoteBundle.shrink(page, by: 2), text: "You're a PM at SalesCRM", note: "Is 5,000 the company or the customer base?", source: 0),
+                  from: NoteSource(title: "Take home 2.pdf", app: "Preview", filePath: "/Users/you/Downloads/Take home 2.pdf", pages: 9, attach: true), on: screen)
+        notes.add(Snip(image: NoteBundle.shrink(page, by: 2), text: "", note: "", source: 0),
+                  from: NoteSource(title: "Case brief", app: "Google Chrome", link: "https://example.com/brief"), on: screen)
+        if let tray = notes.view { save(tray, "notes-tray") }
+        notes.clear()
     }
 }

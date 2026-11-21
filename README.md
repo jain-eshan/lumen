@@ -44,6 +44,7 @@ The menu then shows **Claude connected**. Lumen only uses a Claude plan. If Clau
 - **Tables make sense.** A table is read row by row, with each value named by its column, instead of column by column.
 - **Keep up with Claude.** Follow mode reads new replies as they stream in.
 - **Jump.** Click any sentence and it carries on from there.
+- **Note for Claude.** Click Lumen and choose Note for Claude, or pick it from the menu bar. Drag over a part of any document, type or dictate your thought on it, and repeat as you scroll, up to 10 parts. Copy all puts a short message and one file on your clipboard, saved in Downloads as well. For a PDF on your Mac (open in Preview or another Mac app, or opened from Downloads in Chrome, Safari, Arc, Edge or Brave), the file is a marked-up copy: your notes highlighted and numbered where they belong, with a first page listing every note. For anything else (web pages, a document you haven't downloaded, other apps), it's a notes PDF: a first page saying what you want and where the parts come from, then a page per part with the text you marked, a numbered picture of it, and your note. Your notes travel inside the file, so they arrive wherever you paste. Paste it into any Claude chat or project. Choose History… from the menu bar or Lumen's right-click menu to see past sets and copy any of them again, and what Lumen read aloud, for the last 30 days. Your notes are saved as you go. Close the tray with × or Done and the set stays in History; Delete removes it. If Lumen quits with the tray open, the set comes back next time.
 - **Ask.** Press Option + Shift + A to ask about what's on screen. Type, or dictate with any dictation app you already use, then press Return. Ask needs Claude connected, as described above.
 - **Lumen.** The moth lives on top of your Dock. It wanders and reads to itself, flies over to the icon of the app you're reading, and its mouth and lantern follow the voice. It listens while you ask, thinks while Claude works, and falls asleep after a few quiet minutes. Hover over it for a tip, click it to start or pause, or pick it up and drop it. It steps aside when your pointer is over the Dock below it. Turn it off from the menu bar, or choose Keep Lumen in one place and it stays wherever you drop it, with no wandering or following. With Reduce Motion on, it stays put.
 
@@ -65,14 +66,15 @@ All shortcuts use Option + Shift.
 
 - **Reading stays on your Mac.** Lumen looks only at the area you select, reads its text with macOS's own text recognition, and speaks it with the voice model inside the app. Nothing is uploaded. There is no account, no analytics and no tracking.
 - **Claude features send text only when you use them.** With "Richer voice with Claude" on, the text in your reading area goes to Claude to plan the reading. Ask sends your question, the sentence being read, and the text in the reading area (or in the window under your pointer when nothing is being read), and Claude may search the web to answer. Both run through your own `claude` command and your Claude plan. Lumen never uses an API key.
-- **What stays on disk.** Your settings (voice, mood, speed, and what you asked it to read in each app) are kept in macOS preferences. A diagnostic log at `~/Library/Logs/Narrator/narrator.log` records events such as which app was read and how long things took, never the text itself.
+- **Note for Claude sends nothing itself.** The parts you mark, their text, your notes, the file location or tab link, and any attached file go only to your clipboard, for you to paste. A marked-up PDF or notes PDF is a new file in your Downloads folder (macOS asks once if Lumen may save there), and your original PDF is never changed. To read a tab's link, Lumen asks the browser, and macOS asks you to allow that once per browser.
+- **What stays on disk.** Your settings (voice, mood, speed, and what you asked it to read in each app) are kept in macOS preferences. A diagnostic log at `~/Library/Logs/Narrator/narrator.log` records events such as which app was read and how long things took, never the text itself. History, at `~/Library/Application Support/Narrator/History`, keeps your Note for Claude sets (the marked parts, their text, your notes and requests, and where they came from) and a list of what was read aloud by date, app and window title, never the text. Anything older than 30 days is deleted automatically, and Delete in the tray removes a set straight away.
 
 ## Uninstall
 
-Quit Lumen from the menu bar, then run the two commands below. Lumen still uses Narrator's internal names for its settings, log and voice cache, so updates from Narrator keep your settings. That's why the paths say narrator.
+Quit Lumen from the menu bar, then run the two commands below. Lumen still uses Narrator's internal names for its settings, log, history and voice cache, so updates from Narrator keep your settings. That's why the paths say narrator.
 
 ```bash
-rm -rf /Applications/Lumen.app /Applications/Narrator.app ~/Library/Logs/Narrator ~/.cache/narrator-espeak
+rm -rf /Applications/Lumen.app /Applications/Narrator.app ~/Library/Logs/Narrator ~/.cache/narrator-espeak "$HOME/Library/Application Support/Narrator"
 ```
 
 ```bash
