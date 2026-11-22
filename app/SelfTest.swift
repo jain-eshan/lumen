@@ -63,6 +63,34 @@ func runSelfTest() -> Int32 {
     check("local reading skips the user's own messages", LocalDirector.plan(units: bubbleUnits, purpose: "Claude's replies", mood: "Auto", rightSide: [0], following: false).items.map(\.unit) == [1])
     check("finds a mood in a dictated purpose", LocalDirector.mood(in: "Claude's replies, calm please") == "Calm")
     check("marks the user's message on the right", rightSideUnits(bubbleUnits, lines: [bubble, replyLine], screen: [replyLine, bubble, replyLine]) == [0])
+    // The Claude app as it looked in a real test: a long message of four lines, then a one-line reply.
+    func chat(_ text: String, x: CGFloat, y: CGFloat) -> ScreenLine { ScreenLine(text: text, box: CGRect(x: x, y: y, width: 0.64, height: 0.02)) }
+    let longMessage = [
+        chat("Got it. Second, we're already clear on what the feature will be. Let's directly jump", x: 0.229, y: 0.927),
+        chat("into the launch plan, and we'll cover how the pilot will be run, what we will measure,", x: 0.226, y: 0.899),
+        chat("what the guardrails will be, and any sort of risks that I can think of. Let me know if you", x: 0.229, y: 0.874),
+        chat("have any. Think more about what I should cover, otherwise I'll move forward with it.", x: 0.227, y: 0.845),
+    ]
+    let claudeScreen = longMessage + [chat("Checking whether the plan names a goal ›", x: 0.093, y: 0.759), chat("Go ahead.", x: 0.093, y: 0.712), chat("Reply", x: 0.087, y: 0.066)]
+    let screenUnits = utterances(claudeScreen, in: 0..<claudeScreen.count)
+    check("marks a long message of several lines as the user's", rightSideUnits(screenUnits, lines: claudeScreen, screen: claudeScreen).isSuperset(of: [0, 1, 2]))
+    // Claude's bullets are indented, and a wrapped bullet line must not be mistaken for the user's message.
+    let bullets = [
+        ScreenLine(text: "The check against reported numbers", box: CGRect(x: 0.034, y: 0.161, width: 0.62, height: 0.02)),
+        ScreenLine(text: "\u{2022} Top-down, from the users, Swiggy had", box: CGRect(x: 0.055, y: 0.119, width: 0.62, height: 0.02)),
+        ScreenLine(text: "19.8 million monthly users in Q2.", box: CGRect(x: 0.110, y: 0.090, width: 0.40, height: 0.02)),
+        ScreenLine(text: "At about 3 orders a month, that is 20M x 3 / 30 =", box: CGRect(x: 0.116, y: 0.063, width: 0.56, height: 0.02)),
+    ]
+    check("does not mistake indented bullet lines for the user's message", rightSideUnits(utterances(bullets, in: 0..<4), lines: bullets, screen: bullets + (0..<4).map { ScreenLine(text: "Reply text above the list \($0).", box: CGRect(x: 0.034, y: 0.4 + 0.03 * CGFloat($0), width: 0.6, height: 0.02)) }).isEmpty)
+    check("never marks the reply as the user's", rightSideUnits(screenUnits, lines: claudeScreen, screen: claudeScreen).isDisjoint(with: screenUnits.indices.filter { screenUnits[$0].text.contains("Go ahead") }))
+    check("reads a short reply that ends a sentence", worthReading("Go ahead.") && worthReading("Yes, that works.") && !worthReading("Auto") && !worthReading("Opus 5.5 High") && !worthReading("Reply"))
+    check("scrolls for more of a long reply once everything visible is read", shouldScrollForMore(unreadVisible: false, queued: false, paused: false, stillFor: 2.5, sinceScroll: 9, atEnd: false))
+    check("does not scroll while reading, paused, or text is still arriving", !shouldScrollForMore(unreadVisible: false, queued: true, paused: false, stillFor: 5, sinceScroll: 9, atEnd: false)
+        && !shouldScrollForMore(unreadVisible: false, queued: false, paused: true, stillFor: 5, sinceScroll: 9, atEnd: false)
+        && !shouldScrollForMore(unreadVisible: true, queued: false, paused: false, stillFor: 5, sinceScroll: 9, atEnd: false)
+        && !shouldScrollForMore(unreadVisible: false, queued: false, paused: false, stillFor: 0.5, sinceScroll: 9, atEnd: false))
+    check("stops scrolling at the end of the page", !shouldScrollForMore(unreadVisible: false, queued: false, paused: false, stillFor: 5, sinceScroll: 9, atEnd: true))
+    check("ignores the collapsed thinking line", readableLines([chat("Checking whether the plan names a goal ›", x: 0.093, y: 0.759), chat("Go ahead.", x: 0.093, y: 0.712)]).map(\.text) == ["Go ahead."])
 
     let source = [line("Region Revenue"), line("North 120"), line("South 80")]
     let table = [Utterance(text: "Region Revenue North 120 South 80", spans: [LineSpan(line: 0, from: 0, to: 14)], pauseAfter: 0.14)]

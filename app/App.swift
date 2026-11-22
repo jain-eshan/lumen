@@ -684,6 +684,7 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
 
     private func setPaused(_ paused: Bool, message: String? = nil) {
         guard paused != isPaused else { return }
+        note(paused ? "paused\(scrolledByUser ? " because the page was scrolled by hand" : "")" : "resumed")
         isPaused = paused
         playButton?.image = symbol(paused ? "play.fill" : "pause.fill", label: paused ? "Play" : "Pause")
         playButton?.setAccessibilityLabel(paused ? "Play" : "Pause")
@@ -1616,6 +1617,8 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
         var earlierRound = Set<String>()
         var lastChange = Date()
         var lastNews = Date()
+        var lastScrolled = Date.distantPast
+        var endOfPage = ""  // The text of a screen that did not move when scrolled, which means there is nothing below it.
         while followNew {
             try await Task.sleep(for: .milliseconds(350))
             try await waitUntilVisible()
@@ -1652,7 +1655,7 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
             }
             guard replyQueue.count < 2 else { continue }
             if let end = replyWaiting.lastIndex(where: { endsThought($0.text) }),
-               replyWaiting[...end].contains(where: { normalized($0.text).count >= 16 }) {
+               replyWaiting[...end].contains(where: { worthReading($0.text) }) {
                 queueReply(placed(Array(replyWaiting[...end]), on: lines), purpose: purpose)
                 replyWaiting.removeFirst(end + 1)
                 lastNews = Date()
@@ -1661,9 +1664,28 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
             // The final lines count as finished once the text stops changing, which takes at least a second.
             guard Date().timeIntervalSince(lastChange) >= 1 else { continue }
             let remaining = replyWaiting + unreadLines(in: lines, seen: seen + claimedLines + replyWaiting.map(\.text))
+            // A long reply carries on below the screen, where the text cannot be seen, so once everything visible
+            // has been read, scroll down to look for more.
+            if shouldScrollForMore(unreadVisible: remaining.contains { !$0.touchesBottom }, queued: !replyQueue.isEmpty, paused: isPaused,
+                                   stillFor: Date().timeIntervalSince(lastChange), sinceScroll: Date().timeIntervalSince(lastScrolled), atEnd: previousText == endOfPage) {
+                lastScrolled = Date()
+                setStatus("Scrolling", "Looking for more of the reply below.")
+                await scrollDown(in: currentRect, gentle: NSWorkspace.shared.accessibilityDisplayShouldReduceMotion)
+                try await waitForPageToSettle()
+                let moved = readableLines((try? await recognizeLines(in: try await capture(currentRect))) ?? [])
+                if moved.map({ normalized($0.text) }).joined() == previousText {
+                    endOfPage = previousText
+                    note("reached the end of the page")
+                    showFollowing()
+                } else {
+                    note("scrolled down to look for more")
+                }
+                previousScreen = nil
+                continue
+            }
             guard let last = remaining.last, Date().timeIntervalSince(lastChange) >= (endsThought(last.text) ? 1 : 3.5) else { continue }
             replyWaiting = []
-            if remaining.contains(where: { normalized($0.text).count >= 16 }) {
+            if remaining.contains(where: { worthReading($0.text) }) {
                 queueReply(placed(remaining, on: lines), purpose: purpose)
                 lastNews = Date()
             } else {
@@ -1738,6 +1760,11 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
         do {
             let began = Date()
             let rightSide = rightSideUnits(items, lines: lines, screen: followNew && !liveLines.isEmpty ? liveLines : lines)
+            // Only the user's own message arrived, so there is nothing to read and no reason to wait for a plan.
+            if followNew, !items.isEmpty, rightSide.count == items.count {
+                note("new text was the user's own message")
+                return ReadingSetup(items: [], voice: chosenVoice)
+            }
             let plan: ReadingPlan
             if usesClaude {
                 let helper = followNew ? spareHelper : nil

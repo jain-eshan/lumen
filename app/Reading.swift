@@ -114,7 +114,21 @@ func readableLines(_ lines: [ScreenLine]) -> [ScreenLine] {
     lines.filter { line in
         !line.touchesTop && line.confidence >= 0.3 && line.text.contains { $0.isLetter || $0.isNumber }
             && !speakerNames.contains(normalized(line.text))
+            // A line ending in › is a folded section, such as Claude's "Checking whether..." thinking summary.
+            && !line.text.trimmingCharacters(in: .whitespaces).hasSuffix("\u{203A}")
     }
+}
+
+/// Whether new text is worth speaking. Long lines are, and so is a short finished sentence such as "Go ahead.",
+/// while a loose label like "Auto" or "Reply" is interface.
+func worthReading(_ text: String) -> Bool {
+    normalized(text).count >= 16 || (endsThought(text) && text.split(separator: " ").count >= 2)
+}
+
+/// Whether Follow should scroll down by itself: only when everything visible is read, nothing is being read or planned,
+/// the screen has been still for a couple of seconds, and the last scroll did not already show the end of the page.
+func shouldScrollForMore(unreadVisible: Bool, queued: Bool, paused: Bool, stillFor: TimeInterval, sinceScroll: TimeInterval, atEnd: Bool) -> Bool {
+    !unreadVisible && !queued && !paused && !atEnd && stillFor >= 2 && sinceScroll >= 1.5
 }
 
 /// Keeps new lines positioned where they sit now, so the highlight never marks the wrong place.
@@ -346,13 +360,15 @@ func tableAware(_ lines: [ScreenLine]) -> [ScreenLine] {
 func rightSideUnits(_ units: [Utterance], lines: [ScreenLine], screen: [ScreenLine]) -> Set<Int> {
     let edges = screen.filter { $0.box.width > 0 }.map(\.box.minX).sorted()
     guard !edges.isEmpty else { return [] }
-    let column = edges[edges.count / 2]
+    // The replies start at the leftmost edge that a second line shares. The middle edge cannot be used,
+    // because a long message from the user has the most lines and would then count as the replies' column.
+    let column = edges.indices.first { index in edges[(index + 1)...].first.map { $0 - edges[index] < 0.012 } ?? false }.map { edges[$0] } ?? edges[0]
     return Set(units.indices.filter { index in
         !units[index].spans.isEmpty && units[index].spans.allSatisfy { span in
             guard lines.indices.contains(span.line) else { return false }
             let box = lines[span.line].box
             let besideOtherText = screen.contains { abs($0.box.midY - box.midY) < box.height / 2 && $0.box.minX < box.minX - 0.01 }
-            return box.minX - column > 0.12 && !besideOtherText
+            return box.minX - column > 0.11 && !besideOtherText
         }
     })
 }
