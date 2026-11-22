@@ -474,7 +474,8 @@ func utterances(_ lines: [ScreenLine], paragraph: Range<Int>) -> [Utterance] {
             previousWasWhole = cuts.isEmpty
         }
     }
-    if !result.isEmpty { result[result.count - 1].pauseAfter = 0.42 }
+    // Google's narrated articles rest 0.6 to 1.0 seconds between paragraphs; 0.42 sounded run together by comparison.
+    if !result.isEmpty { result[result.count - 1].pauseAfter = 0.65 }
     return result
 }
 

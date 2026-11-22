@@ -111,7 +111,7 @@ func runSelfTest() -> Int32 {
     check("marks where each sentence sits within a line", twoSentences.count == 2 && twoSentences[1].spans[0].from > 30)
     let spaced = [placed("First paragraph ends with this line.", top: 0.9), placed("Second paragraph begins much lower.", top: 0.7)]
     check("separates paragraphs using the gap on screen", paragraphRanges(spaced, in: 0..<2).count == 2)
-    check("pauses longer at the end of a paragraph", utterances(spaced, in: 0..<2).first?.pauseAfter == 0.42)
+    check("pauses longer at the end of a paragraph", utterances(spaced, in: 0..<2).first?.pauseAfter == 0.65)
     let noisy = [ScreenLine(text: "Clipped title", touchesTop: true), line("• •"), ScreenLine(text: "Blurry", confidence: 0.1), line("Real text")]
     check("ignores clipped lines and recognition noise", readableLines(noisy).map(\.text) == ["Real text"])
     check("drops a chat label before speaking", utterances([line("Claude: Working capital is current assets minus liabilities.")], in: 0..<1).first?.text == "Working capital is current assets minus liabilities.")
