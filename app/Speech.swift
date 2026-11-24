@@ -90,16 +90,19 @@ let logClock: ISO8601DateFormatter = {
     return clock
 }()
 
+/// Where events go. Evals set their own, so a run never lands in the log of the app in use.
+nonisolated(unsafe) var logFile = logFolder.appendingPathComponent("narrator.log")
+
 /// Records app events only, never the text on screen.
 func note(_ message: String) {
-    let url = logFolder.appendingPathComponent("narrator.log")
+    let url = logFile
     let line = Data("\(logClock.string(from: Date())) \(message)\n".utf8)
     if let handle = try? FileHandle(forWritingTo: url) {
         defer { try? handle.close() }
         _ = try? handle.seekToEnd()
         try? handle.write(contentsOf: line)
     } else {
-        try? FileManager.default.createDirectory(at: logFolder, withIntermediateDirectories: true)
+        try? FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
         try? line.write(to: url)
     }
 }

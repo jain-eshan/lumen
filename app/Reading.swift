@@ -131,6 +131,22 @@ func shouldScrollForMore(unreadVisible: Bool, queued: Bool, paused: Bool, stillF
     !unreadVisible && !queued && !paused && !atEnd && stillFor >= 2 && sinceScroll >= 1.5
 }
 
+/// Where to scroll, best guess first: the column that worked last time, then over the text itself, then the middle and each
+/// side. In a wide selection the middle can sit on a divider or a side panel that never scrolls, so one try that moves
+/// nothing does not mean the page has ended. Spots closer than 150 points count as the same one.
+func scrollSpots(for lines: [ScreenLine], in rect: CGRect, preferred: CGFloat? = nil) -> [CGPoint] {
+    var fractions: [CGFloat] = preferred.map { [$0] } ?? []
+    let middles = lines.map(\.box.midX).sorted()
+    if !middles.isEmpty { fractions.append(middles[middles.count / 2]) }
+    fractions += [0.5, 0.25, 0.75]
+    var spots: [CGPoint] = []
+    for fraction in fractions {
+        let spot = CGPoint(x: rect.minX + fraction * rect.width, y: rect.midY)
+        if !spots.contains(where: { abs($0.x - spot.x) < 150 }) { spots.append(spot) }
+    }
+    return spots
+}
+
 /// Keeps new lines positioned where they sit now, so the highlight never marks the wrong place.
 func placed(_ lines: [ScreenLine], on screen: [ScreenLine]) -> [ScreenLine] {
     let boxes = Dictionary(screen.map { (normalized($0.text), $0.box) }, uniquingKeysWith: { _, latest in latest })
@@ -149,8 +165,9 @@ func looksLikeChat(owner: String, title: String, purpose: String) -> Bool {
     return apps.contains { place.contains($0) } || ["repl", "respons", "answer", "mock", "interview"].contains { goal.contains($0) }
 }
 
-/// Finds lines not read yet, using long lines already read as anchors after a scroll.
-func unreadLines(in current: [ScreenLine], seen: [String]) -> [ScreenLine] {
+/// Finds lines not read yet, using long lines already read as anchors after a scroll. Without anchors every line is
+/// judged on its own, which is slower to settle after a scroll but cannot hide a line behind a wrong anchor.
+func unreadLines(in current: [ScreenLine], seen: [String], anchored: Bool = true) -> [ScreenLine] {
     // This runs several times a second while following, so each line is normalized once and remembered.
     let seenNormalized = normalizedOnce(seen)
     let seenLines = Set(seenNormalized)
@@ -177,9 +194,19 @@ func unreadLines(in current: [ScreenLine], seen: [String]) -> [ScreenLine] {
         }
     }
     let texts = current.map { normalized($0.text) }
-    let anchor = texts.lastIndex { $0.count >= 16 && wasRead($0) }
-    let start = anchor.map { $0 + 1 } ?? 0
-    return current.indices[start...].filter { !wasRead(texts[$0]) && !nearlyRead(texts[$0]) }.map { current[$0] }
+    // Text recognition returns one block per column or panel, in no fixed order between them. A line read in a side panel
+    // must not hide the chat lines listed before it, so each block, which ends where the order jumps back up the screen,
+    // gets its own anchor.
+    var unread: [ScreenLine] = []
+    var blockStart = 0
+    for end in 1...max(current.count, 1) where end == current.count || current.isEmpty || current[end].box.midY > current[end - 1].box.midY + 0.02 {
+        let block = blockStart..<min(end, current.count)
+        let anchor = anchored ? block.last { texts[$0].count >= 16 && wasRead(texts[$0]) } : nil
+        let start = anchor.map { $0 + 1 } ?? block.lowerBound
+        unread += (start..<block.upperBound).filter { !wasRead(texts[$0]) && !nearlyRead(texts[$0]) }.map { current[$0] }
+        blockStart = end
+    }
+    return unread
 }
 
 /// Whether two texts differ by at most `limit` added or removed characters.
@@ -357,7 +384,9 @@ func tableAware(_ lines: [ScreenLine]) -> [ScreenLine] {
 // MARK: Tables end
 
 /// Chat apps place the user's own messages to the right of the column holding the replies.
-func rightSideUnits(_ units: [Utterance], lines: [ScreenLine], screen: [ScreenLine]) -> Set<Int> {
+/// `width` is the reading area's width in points, so a message counts as indented by the same distance however wide the
+/// area is: a wrapped bullet sits about 73 points in, and a long message from the user about 120 or more.
+func rightSideUnits(_ units: [Utterance], lines: [ScreenLine], screen: [ScreenLine], width: CGFloat) -> Set<Int> {
     let edges = screen.filter { $0.box.width > 0 }.map(\.box.minX).sorted()
     guard !edges.isEmpty else { return [] }
     // The replies start at the leftmost edge that a second line shares. The middle edge cannot be used,
@@ -368,7 +397,7 @@ func rightSideUnits(_ units: [Utterance], lines: [ScreenLine], screen: [ScreenLi
             guard lines.indices.contains(span.line) else { return false }
             let box = lines[span.line].box
             let besideOtherText = screen.contains { abs($0.box.midY - box.midY) < box.height / 2 && $0.box.minX < box.minX - 0.01 }
-            return box.minX - column > 0.11 && !besideOtherText
+            return (box.minX - column) * width > 80 && !besideOtherText
         }
     })
 }

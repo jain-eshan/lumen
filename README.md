@@ -140,6 +140,12 @@ Lumen.app/Contents/MacOS/Lumen --selftest
 mkdir -p /tmp/previews && Lumen.app/Contents/MacOS/Lumen --render-ui=/tmp/previews
 ```
 
+Follow mode, which reads a chat as the replies arrive, also has an eval. It reads a drawn stand-in for the Claude chat, with a long reply that runs below the screen, the user's own message, a side panel and a folded thinking line, and checks what Lumen would speak. Nothing shows on screen and the cursor is not touched, so the computer stays usable. Run it before a release, and add a scenario for every failure reported from real use:
+
+```bash
+evals/run.sh Lumen.app
+```
+
 ## Lumen's art
 
 The logo, wordmark, colours and voice live in [`brand/`](brand/BRAND.md). Read `brand/BRAND.md` before making anything with the Lumen name on it.
@@ -170,7 +176,9 @@ The demo is a [HyperFrames](https://hyperframes.heygen.com) project in `videos/n
   - `History.swift`: the History window and the 30-day store behind it
   - `App.swift`: the menu bar app that ties it all together
   - `SelfTest.swift`: checks run with `--selftest`
+  - `Simulation.swift`: the drawn chat that `evals/run.sh` reads
   - `main.swift`: starts the app
+- `evals/run.sh`: the Follow mode eval, one line per failure that was reported
 - `app/build.sh`, `app/package.sh`: build and disk image
 - `app/lumen/`: Lumen's poses, bundled into the app
 - `brand/`: the brand guide, logo, wordmark and colours

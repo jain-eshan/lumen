@@ -3,7 +3,11 @@ import ScreenCaptureKit
 
 // MARK: - Screen actions
 
+/// Set only by evals (`--simulate-screen`): the screen Lumen reads is then drawn in memory, so nothing shows on the real one.
+nonisolated(unsafe) var simulatedScreen: SimulatedScreen?
+
 func capture(_ rect: CGRect) async throws -> CGImage {
+    if let simulated = simulatedScreen { return simulated.image(for: rect) }
     let content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: true)
     let center = CGPoint(x: rect.midX, y: rect.midY)
     guard let display = content.displays.first(where: { $0.frame.contains(center) }) else {
@@ -32,13 +36,18 @@ func easedProgress(_ time: Double) -> Double {
 }
 
 /// Glides the page down a screen the way a trackpad flick does: slow, quick, slow. It follows the clock rather than
-/// counting steps, so the motion stays even if a step runs late. It only borrows the cursor if it is elsewhere.
-func scrollDown(in rect: CGRect, gentle: Bool = false) async {
+/// counting steps, so the motion stays even if a step runs late. It scrolls whatever is under `target`, borrowing the
+/// cursor unless it is already there, because a cursor inside the area can still be over a panel that does not scroll.
+func scrollDown(in rect: CGRect, at target: CGPoint, gentle: Bool = false) async {
     let distance = Int(rect.height * 0.75)
+    if let simulated = simulatedScreen {
+        simulated.scroll(at: target, by: distance)
+        try? await Task.sleep(for: .milliseconds(150))
+        return
+    }
     let duration = gentle ? 0.15 : min(max(Double(distance) / 850, 0.55), 0.9)
     let cursor = globalCursorLocation()
-    let target = CGPoint(x: rect.midX, y: rect.midY)
-    let borrowCursor = !rect.contains(cursor)
+    let borrowCursor = hypot(cursor.x - target.x, cursor.y - target.y) > 40
     if borrowCursor { CGWarpMouseCursorPosition(target) }
     let clock = ContinuousClock()
     let began = clock.now
