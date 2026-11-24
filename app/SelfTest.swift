@@ -368,6 +368,28 @@ func runSelfTest() -> Int32 {
     let taller = lumenGround(screens: screens(laptopVisible: laptop, deskVisible: CGRect(x: 1470, y: 91, width: 1180, height: 729)), x: 2000)
     check("a taller Dock raises her floor straight away", taller.floor == 88)
 
+    // A box the reader drags out of the way stays there.
+    var memory = DragMemory()
+    let box = NSPanel(floatingAt: .floating, frame: NSRect(x: 100, y: 500, width: 300, height: 80))
+    memory.place(box, home: NSPoint(x: 100, y: 500), on: laptop, opening: true, among: [laptop])
+    check("a box opens where Lumen puts it", box.frame.origin == NSPoint(x: 100, y: 500))
+    box.setFrameOrigin(NSPoint(x: 600, y: 300))
+    memory.place(box, home: NSPoint(x: 100, y: 440), on: laptop, among: [laptop])
+    check("a dragged box stays put while its text changes", box.frame.origin == NSPoint(x: 600, y: 240))
+    box.setFrameOrigin(NSPoint(x: 650, y: 240))
+    memory.noteDrag(of: box)
+    let reopened = NSPanel(floatingAt: .floating, frame: NSRect(x: 100, y: 440, width: 300, height: 80))
+    memory.place(reopened, home: NSPoint(x: 100, y: 440), on: laptop, opening: true, among: [laptop])
+    check("a box opens again where it was dragged to", reopened.frame.origin == NSPoint(x: 650, y: 240))
+    memory.place(reopened, home: NSPoint(x: 1700, y: 440), on: desk, opening: true, among: [laptop, desk])
+    check("a box starts afresh when Lumen moves to another screen", reopened.frame.origin == NSPoint(x: 1700, y: 440))
+    reopened.setFrameOrigin(NSPoint(x: 1900, y: 300))
+    memory.place(reopened, home: NSPoint(x: 1700, y: 440), on: desk, among: [laptop, desk])
+    check("a box can be dragged to the other display", reopened.frame.origin == NSPoint(x: 1900, y: 300))
+    reopened.setFrameOrigin(NSPoint(x: 9000, y: 300))
+    memory.place(reopened, home: NSPoint(x: 1700, y: 440), on: desk, among: [laptop, desk])
+    check("a box dragged off every screen comes back on screen", desk.contains(reopened.frame))
+
     print(failures == 0 ? "All self-tests passed" : "\(failures) self-tests failed")
     return failures == 0 ? 0 : 1
 }

@@ -21,6 +21,9 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
     private var statusItem: NSStatusItem?
     private var overlays: [OverlayPanel] = []
     private var purposePanel: OverlayPanel?
+    private var purposeDrag = DragMemory()
+    private var barDrag = DragMemory()
+    private var askDrag = DragMemory()
     private var voiceSample: Task<Void, Never>?
     private var barPanel: NSPanel?
     private var statusLine: NSTextField?
@@ -88,6 +91,12 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
     private var askPanel: OverlayPanel?
     private var askField: PurposeField?
     private var askHint: NSTextField?
+    private var answerPanel: OverlayPanel?
+    private var answerField: PurposeField?
+    private var answerHighlight: ((Int?) -> Void)?
+    private var answerSpeaking: ((Bool) -> Void)?
+    private var answerQuestion = ""
+    private var answerBody = AnswerBody.thinking
     private var askReturnApp: NSRunningApplication?
     private var askTask: Task<Void, Never>?
     private var isAnswering = false
@@ -765,6 +774,15 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
     /// Opens the Ask box. Pressing the shortcut again sends what is written, or closes the box when it is empty.
     private func askPressed() {
         if jumpPanel != nil || isFindingJump { cancelJump() }
+        if let card = answerPanel, askPanel == nil {
+            let typed = (answerField?.currentEditor()?.string ?? answerField?.stringValue ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+            if !typed.isEmpty { return followUpEntered() }
+            if card.isKeyWindow { return dismissAnswer() }
+            stopAnswer()
+            if case .thinking = answerBody { showAnswerCard(answerQuestion, .message("Stopped. Ask again below.")) }
+            beginAskPause()
+            return focusAnswerField()
+        }
         guard askPanel == nil else {
             let typed = (askField?.currentEditor()?.string ?? askField?.stringValue ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
             if typed.isEmpty { cancelAsk() } else { sendQuestion() }
@@ -792,15 +810,15 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
         well.radius = 11
         well.fill = Palette.well
         background.addSubview(well)
-        let field = PurposeField(frame: NSRect(x: 28, y: y + 9, width: width - 56, height: 22))
+        let field = PurposeField(frame: NSRect(x: 28, y: y + 8, width: width - 56, height: 24))
         field.placeholderAttributedString = NSAttributedString(string: placeholder, attributes: [
             .foregroundColor: Palette.secondaryText,
-            .font: NSFont.systemFont(ofSize: 15),
+            .font: NSFont.systemFont(ofSize: 17),
         ])
         field.isBordered = false
         field.drawsBackground = false
         field.focusRingType = .none
-        field.font = .systemFont(ofSize: 15)
+        field.font = .systemFont(ofSize: 17)
         field.textColor = Palette.text
         field.target = self
         field.action = action
@@ -814,7 +832,7 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
     private func hintLine(_ text: String, in background: NSView, y: CGFloat) -> NSTextField {
         let hint = NSTextField(labelWithString: text)
         hint.frame = NSRect(x: 16, y: y, width: background.frame.width - 32, height: 16)
-        hint.font = .systemFont(ofSize: 11.5)
+        hint.font = .systemFont(ofSize: 12.5)
         hint.textColor = Palette.secondaryText
         background.addSubview(hint)
         return hint
@@ -824,7 +842,7 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
         let background = SurfaceView(frame: NSRect(x: 0, y: 0, width: 560, height: 92))
         let field = textBox(in: background, y: 38, placeholder: "Ask about this, or ask me to search", label: "Ask a question",
                             action: #selector(askEntered), onCancel: { [weak self] in self?.cancelAsk() })
-        let hint = hintLine("Type or dictate your question, then press Return.    Esc to cancel", in: background, y: 12)
+        let hint = hintLine("Type or dictate, then press Return.    Esc to cancel    Drag to move", in: background, y: 12)
         return (background, field, hint)
     }
 
@@ -856,10 +874,13 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
         let content = askBoxContent()
         let size = content.view.frame.size
         let bar = barPanel?.frame ?? NSRect(x: 400, y: 800, width: 700, height: 78)
-        let panel = OverlayPanel(floatingAt: .screenSaver, frame: NSRect(x: bar.midX - size.width / 2, y: bar.minY - size.height - 8, width: size.width, height: size.height))
+        let home = NSPoint(x: bar.midX - size.width / 2, y: bar.minY - size.height - 8)
+        let panel = OverlayPanel(floatingAt: .screenSaver, frame: NSRect(origin: home, size: size))
+        panel.isMovableByWindowBackground = true
         panel.hasShadow = true
         panel.appearance = NSAppearance(named: .darkAqua)
         panel.contentView = content.view
+        askDrag.place(panel, home: home, on: screenFrame(containing: bar), opening: true)
         askPanel = panel
         askField = content.field
         askHint = content.hint
@@ -870,6 +891,7 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
     }
 
     private func closeAskBox() {
+        if let panel = askPanel { askDrag.noteDrag(of: panel) }
         askPanel?.orderOut(nil)
         askPanel = nil
         askField = nil
@@ -877,6 +899,205 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
     }
 
     @objc private func askEntered() { sendQuestion() }
+
+    // MARK: Answer card
+
+    /// What the answer card shows under the question.
+    private enum AnswerBody {
+        case thinking
+        case said([String])
+        case message(String)
+    }
+
+    private func screenFrame(containing rect: NSRect) -> NSRect {
+        (NSScreen.screens.first { $0.frame.contains(NSPoint(x: rect.midX, y: rect.midY)) } ?? NSScreen.screens[0]).frame
+    }
+
+    /// The card that holds an answer: the whole text at a size that reads easily, the sentence being spoken marked, and a
+    /// box for a follow-up question. It stays until the reader closes it.
+    private func answerCardContent(question: String, body: AnswerBody) -> (view: SurfaceView, field: PurposeField, highlight: (Int?) -> Void, speaking: (Bool) -> Void) {
+        let width: CGFloat = 560, pad: CGFloat = 20, textWidth = width - 2 * pad
+        let lines: [String], shown: String, dim: Bool
+        switch body {
+        case .thinking: lines = []; shown = "Thinking…"; dim = true
+        case .said(let said): lines = said; shown = said.joined(separator: " "); dim = false
+        case .message(let text): lines = []; shown = text; dim = false
+        }
+        var ranges: [NSRange] = []
+        var start = 0
+        for line in lines {
+            let length = (line as NSString).length
+            ranges.append(NSRange(location: start, length: length))
+            start += length + 1
+        }
+        let paragraph = NSMutableParagraphStyle()
+        paragraph.lineSpacing = 4
+        func styled(marking range: NSRange?) -> NSAttributedString {
+            let text = NSMutableAttributedString(string: shown, attributes: [
+                .font: NSFont.systemFont(ofSize: 17), .foregroundColor: dim ? Palette.secondaryText : Palette.text, .paragraphStyle: paragraph,
+            ])
+            if let range { text.addAttribute(.backgroundColor, value: Palette.accent.withAlphaComponent(0.26), range: range) }
+            return text
+        }
+        let fullHeight = ceil(styled(marking: nil).boundingRect(with: NSSize(width: textWidth - 4, height: .greatestFiniteMagnitude), options: [.usesLineFragmentOrigin, .usesFontLeading]).height) + 4
+        let shownHeight = min(fullHeight, 280)
+        var hasButtons = false
+        if case .said = body { hasButtons = true }
+        let textY: CGFloat = hasButtons ? 130 : 90
+        let height = textY + shownHeight + 12 + 18 + 16
+        let background = SurfaceView(frame: NSRect(x: 0, y: 0, width: width, height: height))
+
+        let label = NSTextField(wrappingLabelWithString: "")
+        label.attributedStringValue = styled(marking: nil)
+        label.isSelectable = true
+        label.frame = NSRect(x: 0, y: 0, width: textWidth, height: fullHeight)
+        let scroll = NSScrollView(frame: NSRect(x: pad, y: textY, width: textWidth, height: shownHeight))
+        scroll.drawsBackground = false
+        scroll.hasVerticalScroller = fullHeight > shownHeight
+        scroll.documentView = label
+        scroll.contentView.scroll(to: NSPoint(x: 0, y: max(fullHeight - shownHeight, 0)))
+        scroll.reflectScrolledClipView(scroll.contentView)
+        background.addSubview(scroll)
+
+        let asked = NSTextField(labelWithString: "You asked: " + question)
+        asked.frame = NSRect(x: pad, y: textY + shownHeight + 12, width: textWidth - 36, height: 18)
+        asked.font = .systemFont(ofSize: 13)
+        asked.textColor = Palette.secondaryText
+        asked.lineBreakMode = .byTruncatingTail
+        background.addSubview(asked)
+
+        let close = ControlButton(frame: NSRect(x: width - 14 - 28, y: height - 14 - 28, width: 28, height: 28))
+        close.isBordered = false
+        close.title = ""
+        close.image = symbol("xmark", label: "Close answer")
+        close.imagePosition = .imageOnly
+        close.contentTintColor = Palette.text
+        close.target = self
+        close.action = #selector(dismissAnswer)
+        close.toolTip = "Close (Esc)"
+        close.setAccessibilityLabel("Close answer")
+        background.addSubview(close)
+
+        var stop: ControlButton?
+        if hasButtons {
+            var x = pad
+            func chip(_ title: String, action: Selector, tag: Int = 0) -> ControlButton {
+                let button = ControlButton(frame: NSRect(x: x, y: 90, width: ControlButton.labelWidth(title) + 30, height: 30))
+                button.isBordered = false
+                button.title = ""
+                button.fill = Palette.well
+                button.setLabel(title)
+                button.target = self
+                button.action = action
+                button.tag = tag
+                button.setAccessibilityLabel(title)
+                background.addSubview(button)
+                x += button.frame.width + 8
+                return button
+            }
+            for (index, source) in lastSources.prefix(2).enumerated() {
+                let host = (source.host ?? "source").replacingOccurrences(of: "www.", with: "")
+                chip("Open " + host, action: #selector(openAnswerSource(_:)), tag: index).toolTip = source.absoluteString
+            }
+            _ = chip("Copy answer", action: #selector(copyAnswer(_:)))
+            stop = chip("Stop talking", action: #selector(stopTalking))
+            stop?.isHidden = !isAnswering
+        }
+
+        let field = textBox(in: background, y: 38, placeholder: "Ask a follow-up", label: "Ask a follow-up",
+                            action: #selector(followUpEntered), onCancel: { [weak self] in self?.dismissAnswer() })
+        _ = hintLine("Return to send    Esc to close    Drag to move", in: background, y: 12)
+        return (background, field, { [weak label] index in
+            label?.attributedStringValue = styled(marking: index.flatMap { ranges.indices.contains($0) ? ranges[$0] : nil })
+        }, { [weak stop] speaking in stop?.isHidden = !speaking })
+    }
+
+    /// Opens the card under the playback bar, where the Ask box was, or updates it in place. It stays wherever the
+    /// reader dragged it, and grows downward from its top edge.
+    private func showAnswerCard(_ question: String, _ body: AnswerBody) {
+        answerQuestion = question
+        answerBody = body
+        let content = answerCardContent(question: question, body: body)
+        let size = content.view.frame.size
+        let bar = barPanel?.frame ?? NSRect(x: 400, y: 800, width: 700, height: 78)
+        let home = NSPoint(x: bar.midX - size.width / 2, y: bar.minY - size.height - 8)
+        let screen = screenFrame(containing: bar)
+        if let panel = answerPanel {
+            askDrag.noteDrag(of: panel)
+            panel.setFrame(NSRect(origin: panel.frame.origin, size: size), display: false)
+            panel.contentView = content.view
+            askDrag.place(panel, home: home, on: screen, opening: true)
+        } else {
+            let panel = OverlayPanel(floatingAt: .screenSaver, frame: NSRect(origin: home, size: size))
+            panel.isMovableByWindowBackground = true
+            panel.hasShadow = true
+            panel.hidesOnDeactivate = false
+            panel.appearance = NSAppearance(named: .darkAqua)
+            panel.contentView = content.view
+            askDrag.place(panel, home: home, on: screen, opening: true)
+            panel.orderFrontRegardless()
+            answerPanel = panel
+        }
+        answerField = content.field
+        answerHighlight = content.highlight
+        answerSpeaking = content.speaking
+    }
+
+    private func closeAnswerCard() {
+        guard let panel = answerPanel else { return }
+        askDrag.noteDrag(of: panel)
+        if panel.isKeyWindow { askReturnApp?.activate() }
+        panel.orderOut(nil)
+        answerPanel = nil
+        answerField = nil
+        answerHighlight = nil
+        answerSpeaking = nil
+    }
+
+    /// Closes the card. An answer still being made or spoken stops, and the reading it paused carries on.
+    @objc private func dismissAnswer() {
+        closeAnswerCard()
+        if isAnswering || pausedForAsk {
+            stopAnswer()
+            finishAsk(nil)
+        }
+    }
+
+    private func focusAnswerField() {
+        guard let panel = answerPanel, let field = answerField else { return }
+        if let app = NSWorkspace.shared.frontmostApplication, app != NSRunningApplication.current { askReturnApp = app }
+        NSApp.activate(ignoringOtherApps: true)
+        panel.makeKeyAndOrderFront(nil)
+        panel.makeFirstResponder(field)
+    }
+
+    @objc private func followUpEntered() {
+        guard let field = answerField else { return }
+        let question = (field.currentEditor()?.string ?? field.stringValue).trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !question.isEmpty else { return }
+        stopAnswer()
+        beginAskPause()
+        askReturnApp?.activate()
+        beginAnswer(question: question)
+    }
+
+    @objc private func stopTalking() {
+        stopAnswer()
+        finishAsk(nil)
+    }
+
+    @objc private func copyAnswer(_ sender: ControlButton) {
+        guard case .said(let lines) = answerBody else { return }
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(lines.joined(separator: " "), forType: .string)
+        sender.setLabel("Copied")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { sender.setLabel("Copy answer") }
+    }
+
+    @objc private func openAnswerSource(_ sender: NSButton) {
+        guard lastSources.indices.contains(sender.tag) else { return }
+        NSWorkspace.shared.open(lastSources[sender.tag])
+    }
 
     private func sendQuestion() {
         guard let field = askField else { return }
@@ -897,6 +1118,7 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
     private func beginAnswer(question: String) {
         isAnswering = true
         showAsk(status: "Thinking", question)
+        if !isSimulatingAsk { showAnswerCard(question, .thinking) }
         askTask = Task { [weak self] in await self?.answer(question) }
     }
 
@@ -920,6 +1142,7 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
             if isSimulatingAsk { note("TEST question: \(question) | answer: \(reply.spoken) | sources: \(lastSources.map(\.absoluteString))") }
             updateControls()
             let lines = sentences(in: reply.spoken)
+            if answerPanel != nil { showAnswerCard(question, .said(lines)) }
             var audio: [Int: Task<URL, Error>] = [:]
             // Clips made ahead are deleted too when the answer is cancelled partway.
             defer { discardClips(audio.values) }
@@ -928,7 +1151,8 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
                     let upcoming = Utterance(text: lines[ahead], spans: [], pauseAfter: 0.14)
                     audio[ahead] = Task { try await self.performedClip(upcoming, narrator: narratorVoice(for: "other")) }
                 }
-                setStatus("Answer", lines[index])
+                setStatus("Answer", answerPanel == nil ? lines[index] : "Reading the answer aloud.")
+                answerHighlight?(index)
                 await playAnswerClip(try await audio[index]!.value)
                 try Task.checkCancellation()
                 try await Task.sleep(for: .milliseconds(140))
@@ -1017,7 +1241,12 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
     private func finishAsk(_ message: String?) {
         isAnswering = false
         askTask = nil
-        if let message { setStatus("Lumen", message) }
+        answerHighlight?(nil)
+        answerSpeaking?(false)
+        if let message {
+            setStatus("Lumen", message)
+            if answerPanel != nil { showAnswerCard(answerQuestion, .message(message)) }
+        }
         if pausedForAsk {
             pausedForAsk = false
             resumePending = true
@@ -1192,6 +1421,7 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
         if !overlays.isEmpty { note("selection: overlay closed") }
         overlays.forEach { $0.orderOut(nil) }
         overlays = []
+        if let panel = purposePanel { purposeDrag.noteDrag(of: panel) }
         purposePanel?.orderOut(nil)
         purposePanel = nil
     }
@@ -1395,7 +1625,7 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
         row("Read", ["Everything", "Claude's replies", "New replies only"], y: 116, action: #selector(choosePreset(_:)), selected: nil, shortcuts: true)
         row("Mood", LocalDirector.moods, y: 80, action: #selector(chooseMood(_:)), selected: LocalDirector.moods.firstIndex(of: readingMood) ?? 0, shortcuts: false)
         row("Voice", voiceChoices.map(\.title), y: 44, action: #selector(chooseVoice(_:)), selected: voiceChoices.firstIndex { $0.title == readingVoice } ?? 0, shortcuts: false)
-        _ = hintLine("Return to start    Esc to cancel    Click a voice to hear it", in: background, y: 14)
+        _ = hintLine("Return to start    Esc to cancel    Click a voice to hear it    Drag to move", in: background, y: 14)
         return (background, field)
     }
 
@@ -1430,10 +1660,13 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
 
     private func askPurpose(near rect: NSRect) {
         let content = purposeContent(purpose: UserDefaults.standard.string(forKey: purposeKey) ?? "")
-        let panel = OverlayPanel(floatingAt: .screenSaver, frame: boxFrame(content.view.frame.size, near: rect))
+        let frame = boxFrame(content.view.frame.size, near: rect)
+        let panel = OverlayPanel(floatingAt: .screenSaver, frame: frame)
+        panel.isMovableByWindowBackground = true
         panel.hasShadow = true
         panel.appearance = NSAppearance(named: .darkAqua)
         panel.contentView = content.view
+        purposeDrag.place(panel, home: frame.origin, on: (NSScreen.screens.first { $0.frame.intersects(rect) } ?? NSScreen.screens[0]).frame, opening: true)
         purposePanel = panel
         NSApp.activate(ignoringOtherApps: true)
         panel.makeKeyAndOrderFront(nil)
@@ -2061,7 +2294,7 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
         controls.forEach { $0.isHidden = narration == nil || asking }
         progressLine?.isHidden = narration == nil || asking
         closeButton?.isHidden = narration == nil && !isAskBusy
-        let showSource = !lastSources.isEmpty && (isAnswering || resumePending || narration == nil) && askPanel == nil
+        let showSource = !lastSources.isEmpty && (isAnswering || resumePending || narration == nil) && askPanel == nil && answerPanel == nil
         sourceButton?.isHidden = !showSource
         if showSource, let host = lastSources.first?.host {
             sourceButton?.setLabel("Open " + host.replacingOccurrences(of: "www.", with: ""))
@@ -2082,7 +2315,7 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
         let screen = NSScreen.screens.first { $0.frame.intersects(area) } ?? NSScreen.screens[0]
         let size = panel.frame.size
         let y = screen.frame.maxY - max(screen.safeAreaInsets.top, 24) - size.height - 6
-        panel.setFrameOrigin(NSPoint(x: screen.frame.midX - size.width / 2, y: y))
+        barDrag.place(panel, home: NSPoint(x: screen.frame.midX - size.width / 2, y: y), on: screen.frame)
     }
 
     private func showMessage(_ text: String) {
@@ -2094,6 +2327,7 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
         let size = NSSize(width: 770, height: 78)
         let panel = NSPanel(floatingAt: .statusBar, frame: NSRect(origin: .zero, size: size))
         panel.hasShadow = true
+        panel.isMovableByWindowBackground = true
         panel.becomesKeyOnlyIfNeeded = true
         panel.appearance = NSAppearance(named: .darkAqua)
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]
@@ -2191,6 +2425,16 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
         isAnswering = false
         let box = askBoxContent()
         save(box.view, "ask-box")
+        lastSources = [URL(string: "https://www.python.org/downloads/")!]
+        isAnswering = true
+        let said = ["The latest stable version of Python is 3.15.2, according to the official downloads page.", "It came out last month and fixes several security issues.", "Version 3.14 is still supported until next year."]
+        let card = answerCardContent(question: "What is the latest Python version?", body: .said(said))
+        card.highlight(0)
+        save(card.view, "answer-card")
+        save(answerCardContent(question: "What is the latest Python version?", body: .thinking).view, "answer-card-thinking")
+        save(answerCardContent(question: "What is the latest Python version?", body: .message("Claude isn't connected. Open the menu bar icon to set it up.")).view, "answer-card-message")
+        lastSources = []
+        isAnswering = false
         save(purposeContent(purpose: "").view, "purpose")
         for pose in LumenArt.poses {
             let lumen = PetView(frame: NSRect(origin: .zero, size: pet.size))

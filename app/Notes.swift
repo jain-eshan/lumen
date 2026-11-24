@@ -435,6 +435,7 @@ final class NoteTray: NSObject {
     var saveFolder = NoteBundle.downloads
     private var ask = ""
     private var panel: OverlayPanel?
+    private var drag = DragMemory()
     private var askField: PurposeField?
     private var screen: NSScreen?
     var onSnipAnother: (() -> Void)?
@@ -636,17 +637,24 @@ final class NoteTray: NSObject {
         scroll.documentView = content
         background.addSubview(scroll)
         let frame = NSRect(x: screen.visibleFrame.maxX - width - 16, y: screen.visibleFrame.midY - height / 2, width: width, height: height)
-        if panel == nil {
+        // Once the reader drags the tray, it stays there as parts are added, instead of jumping back to the side.
+        let opening = panel == nil
+        if opening {
             let panel = OverlayPanel(floatingAt: .floating, frame: frame)
+            panel.isMovableByWindowBackground = true
             panel.hasShadow = true
             panel.hidesOnDeactivate = false
             panel.appearance = NSAppearance(named: .darkAqua)
             panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
             self.panel = panel
         }
-        panel?.setFrame(frame, display: false)
-        panel?.contentView = background
-        panel?.orderFrontRegardless()
+        if let panel {
+            if !opening { drag.noteDrag(of: panel) }
+            panel.setFrame(NSRect(origin: panel.frame.origin, size: frame.size), display: false)
+            panel.contentView = background
+            drag.place(panel, home: frame.origin, on: screen.frame, opening: true)
+            panel.orderFrontRegardless()
+        }
     }
 
     /// Saves the set to History after every change, so quitting, a crash or a restart loses nothing.
