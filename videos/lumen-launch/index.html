@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <title>Lumen launch</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      @font-face { font-family: "Instrument Serif"; font-style: normal; font-weight: 400; src: url("assets/fonts/InstrumentSerif.ttf") format("truetype"); font-display: block; }
+      @font-face { font-family: "Instrument Serif"; font-style: italic; font-weight: 400; src: url("assets/fonts/InstrumentSerif-Italic.woff2") format("woff2"); font-display: block; }
+      @font-face { font-family: "Archivo"; font-style: normal; font-weight: 100 900; src: url("assets/fonts/Archivo.ttf") format("truetype"); font-display: block; }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1920px; height: 1080px; overflow: hidden; background: #F3EAD8; }
+      #root { position: relative; width: 100%; height: 100%; overflow: hidden; background: #F3EAD8; color: #171527; font-family: "Archivo", sans-serif; }
+      .layer { position: absolute; inset: 0; }
+      .serif { font-family: "Instrument Serif", serif; font-weight: 400; }
+      .center { position: absolute; left: 0; right: 0; text-align: center; }
+      .o { opacity: 0; }
+      .w { display: inline-block; opacity: 0; }
+      #bg { background: radial-gradient(900px 700px at 18% 12%, rgba(232,163,61,0.34), transparent 70%), radial-gradient(900px 800px at 88% 90%, rgba(142,127,166,0.30), transparent 70%), #F3EAD8; }
+      #dots { position: absolute; inset: 0; background-image: radial-gradient(rgba(23,21,39,0.07) 1.5px, transparent 1.5px); background-size: 34px 34px; }
+
+      /* hook */
+      #k-free { top: 430px; font-size: 118px; }
+      #k-so { top: 210px; font-size: 30px; letter-spacing: 0.3em; text-transform: uppercase; font-weight: 700; color: #8E7FA6; }
+      #k-cnt { position: absolute; left: 0; right: 0; top: 250px; height: 420px; }
+      .cnt { position: absolute; left: 0; right: 0; text-align: center; font-size: 400px; line-height: 1; color: #E8A33D; opacity: 0; }
+      #k-more { top: 690px; font-size: 100px; }
+      .card { position: absolute; top: 300px; width: 410px; height: 520px; border-radius: 20px; background: #FFFDF8; box-shadow: 0 30px 70px rgba(23,21,39,0.18); overflow: hidden; opacity: 0; }
+      .card .hd { height: 56px; display: flex; align-items: center; gap: 10px; padding: 0 22px; border-bottom: 1px solid rgba(23,21,39,0.08); font-size: 19px; font-weight: 600; color: rgba(23,21,39,0.6); }
+      .card .bd { padding: 22px; }
+      .ln { height: 12px; border-radius: 6px; background: rgba(23,21,39,0.12); margin: 12px 0; }
+      .ln.b { background: rgba(23,21,39,0.55); height: 14px; }
+      .lbl { position: absolute; top: 160px; width: 410px; height: 120px; display: flex; align-items: flex-end; justify-content: center; text-align: center; font-size: 54px; line-height: 1.0; opacity: 0; }
+      .av { width: 26px; height: 26px; border-radius: 50%; background: #E8A33D; }
+      .bars { display: flex; align-items: flex-end; gap: 14px; height: 150px; margin: 18px 0 8px; padding: 0 6px; border-bottom: 2px solid rgba(23,21,39,0.15); }
+      .bars div { flex: 1; border-radius: 6px 6px 0 0; }
+      .mast { font-family: "Instrument Serif", serif; font-size: 30px; text-align: center; letter-spacing: 0.06em; border-bottom: 2px solid #171527; padding-bottom: 8px; color: #171527; }
+      .hl { font-family: "Instrument Serif", serif; font-size: 36px; line-height: 1.05; margin: 14px 0; color: #171527; }
+      .img { height: 130px; border-radius: 10px; background: linear-gradient(135deg, #E8A33D, #8E7FA6); margin: 10px 0 14px; }
+      .card img.still { width: 100%; display: block; }
+      #wall { position: absolute; inset: 0; }
+      .mini { position: absolute; width: 210px; height: 250px; border-radius: 14px; background: #FFFDF8; box-shadow: 0 14px 30px rgba(23,21,39,0.14); padding: 18px; opacity: 0; }
+      .mini .ln { height: 9px; margin: 9px 0; }
+      #k-every { top: 455px; }
+      #k-every span { display: inline-block; padding: 18px 48px; border-radius: 80px; background: #171527; color: #F3EAD8; font-family: "Instrument Serif", serif; font-size: 96px; }
+      #k-eyes { top: 300px; font-size: 104px; }
+      #k-ears { top: 430px; font-size: 104px; font-style: italic; }
+      #k-ears em { color: #E8A33D; }
+      #fly { position: absolute; width: 280px; left: 0; top: 0; opacity: 0; }
+      .wave { position: absolute; left: 0; top: 0; width: 120px; height: 120px; border-radius: 50%; border: 6px solid #E8A33D; opacity: 0; }
+      #mark { position: absolute; width: 620px; left: 560px; top: 330px; opacity: 0; }
+      #k-tag { top: 560px; font-size: 28px; letter-spacing: 0.3em; text-transform: uppercase; color: #8E7FA6; font-weight: 700; }
+      #k-reads { top: 620px; font-size: 56px; line-height: 1.12; }
+
+      /* demo */
+      #device { position: absolute; left: 602px; top: 92px; width: 1268px; height: 890px; border-radius: 30px; background: #1C1A27; padding: 14px; box-shadow: 0 50px 110px rgba(23,21,39,0.28); opacity: 0; }
+      #screen { position: relative; width: 1240px; height: 862px; border-radius: 18px; overflow: hidden; background: #fff; }
+      #screen video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+      #panel { position: absolute; left: 72px; top: 92px; width: 490px; height: 890px; opacity: 0; }
+      #prog { display: none; gap: 22px; font-size: 18px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; }
+      #prog div { color: rgba(23,21,39,0.3); }
+      .step { position: absolute; left: 0; top: 0; width: 490px; opacity: 0; }
+      .num { display: inline-flex; height: 44px; padding: 0 20px; border-radius: 30px; background: #E8A33D; color: #171527; font-weight: 800; font-size: 18px; letter-spacing: 0.16em; text-transform: uppercase; align-items: center; }
+      .ttl { font-family: "Instrument Serif", serif; font-size: 60px; line-height: 1.02; margin-top: 20px; }
+      .how { font-size: 25px; line-height: 1.38; color: rgba(23,21,39,0.82); margin-top: 18px; }
+      .keys { display: flex; gap: 10px; align-items: center; margin-top: 20px; flex-wrap: wrap; }
+      .key { height: 52px; min-width: 52px; padding: 0 16px; border-radius: 12px; background: #FFFDF8; border: 1px solid rgba(23,21,39,0.16); box-shadow: 0 3px 0 rgba(23,21,39,0.16); font-size: 24px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+      .arr { font-size: 24px; font-weight: 700; color: #8E7FA6; }
+      #cap { position: absolute; left: 0; top: 520px; width: 490px; }
+      .cg { position: absolute; left: 0; top: 0; width: 490px; font-size: 28px; line-height: 1.3; font-weight: 500; color: rgba(23,21,39,0.78); opacity: 0; }
+      .cg.lumen { font-family: "Instrument Serif", serif; font-style: italic; font-size: 34px; color: #171527; font-weight: 400; }
+      .cg.lumen .lab { display: block; font-family: "Archivo", sans-serif; font-style: normal; font-size: 16px; font-weight: 800; letter-spacing: 0.26em; color: #E8A33D; margin-bottom: 10px; }
+      #buddy { position: absolute; left: 0; top: 712px; width: 170px; height: 172px; opacity: 0; }
+      #buddy img { position: absolute; left: 0; top: 0; width: 170px; opacity: 0; }
+      #talkbars { position: absolute; left: 190px; top: 772px; display: flex; gap: 7px; align-items: center; height: 60px; opacity: 0; }
+      #talkbars div { width: 9px; height: 18px; border-radius: 5px; background: #E8A33D; }
+
+      /* trust + end */
+      #cheer { position: absolute; width: 260px; left: 830px; top: 170px; opacity: 0; }
+      #badges { position: absolute; left: 0; right: 0; top: 520px; display: flex; justify-content: center; gap: 36px; }
+      #badges2 { position: absolute; left: 0; right: 0; top: 680px; display: flex; justify-content: center; }
+      .badge { position: relative; height: 110px; padding: 0 44px; border-radius: 60px; background: #FFFDF8; box-shadow: 0 20px 50px rgba(23,21,39,0.14); display: flex; align-items: center; font-family: "Instrument Serif", serif; font-size: 58px; opacity: 0; white-space: nowrap; }
+      .badge.hot { background: #E8A33D; }
+      #e-open { top: 300px; font-size: 150px; }
+      #e-gh { top: 500px; }
+      #e-gh span { display: inline-block; padding: 14px 34px; border-radius: 50px; background: #171527; color: #F3EAD8; font-size: 34px; font-weight: 600; }
+      #e-try { top: 640px; font-size: 64px; }
+      #e-mark { position: absolute; width: 620px; left: 650px; top: 250px; opacity: 0; }
+      #e-wave { position: absolute; width: 240px; left: 1260px; top: 215px; opacity: 0; }
+      #e-tag { top: 470px; font-size: 60px; }
+      #e-url { top: 610px; }
+      #e-url span { display: inline-block; padding: 14px 40px; border-radius: 60px; background: #E8A33D; font-size: 48px; font-weight: 800; }
+      #e-sub { top: 730px; font-size: 26px; color: rgba(23,21,39,0.7); }
+      #e-by { top: 950px; font-size: 22px; letter-spacing: 0.26em; text-transform: uppercase; color: #8E7FA6; font-weight: 700; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-width="1920" data-height="1080" data-duration="68.0">
+      <div class="layer" id="bg"><div id="dots"></div></div>
+
+      <div class="layer" id="hook">
+        <div class="center serif" id="k-free"><span class="w">AI</span> <span class="w">made</span> <span class="w">writing</span> <span class="w">almost</span> <span class="w">free.</span></div>
+        <div class="center o" id="k-so">So now there's</div>
+        <div id="k-cnt"></div>
+        <div class="center serif o" id="k-more">more to read.</div>
+
+        <div class="lbl serif" id="lb1" style="left:105px">Long Claude threads</div>
+        <div class="card" id="c1" style="left:105px"><div class="hd"><div class="av"></div>Claude · reply</div><div class="bd"><div class="ln b" style="width:70%"></div><div class="ln"></div><div class="ln"></div><div class="ln" style="width:85%"></div><div class="ln"></div><div class="ln b" style="width:55%"></div><div class="ln"></div><div class="ln" style="width:92%"></div><div class="ln"></div><div class="ln" style="width:75%"></div><div class="ln"></div><div class="ln" style="width:60%"></div><div class="ln"></div><div class="ln" style="width:80%"></div></div></div>
+        <div class="lbl serif" id="lb2" style="left:555px">Market reports</div>
+        <div class="card" id="c2" style="left:555px"><div class="hd">Q3 market report.pdf</div><div class="bd"><div class="hl">Quick commerce, 2026 outlook</div><div class="bars"><div style="height:40%;background:#8E7FA6"></div><div style="height:62%;background:#8E7FA6"></div><div style="height:55%;background:#8E7FA6"></div><div style="height:80%;background:#E8A33D"></div><div style="height:100%;background:#E8A33D"></div></div><div class="ln"></div><div class="ln" style="width:85%"></div><div class="ln"></div><div class="ln" style="width:70%"></div></div></div>
+        <div class="lbl serif" id="lb3" style="left:1005px">30-page case studies</div>
+        <div class="card" id="c3" style="left:1005px"><div class="hd">Case · 30 pages</div><img class="still" src="assets/stills/case.jpg" alt="" /></div>
+        <div class="lbl serif" id="lb4" style="left:1455px">Articles &amp; newsletters</div>
+        <div class="card" id="c4" style="left:1455px"><div class="hd">12 min read</div><div class="bd"><div class="mast">THE MORNING BRIEF</div><div class="hl">Ten-minute delivery is rewriting retail</div><div class="img"></div><div class="ln"></div><div class="ln" style="width:88%"></div><div class="ln"></div><div class="ln" style="width:65%"></div></div></div>
+
+        <div id="wall"></div>
+        <div class="center o" id="k-every"><span>Every single day.</span></div>
+        <div class="center serif o" id="k-eyes">Most of it gets skimmed,</div>
+        <div class="center serif o" id="k-ears">and <em>forgotten.</em></div>
+        <div class="wave" id="wv1"></div><div class="wave" id="wv2"></div><div class="wave" id="wv3"></div>
+        <img id="fly" src="assets/brand/fly.png" alt="" />
+        <img id="mark" src="assets/brand/lumen-wordmark-on-light.png" alt="Lumen" />
+        <div class="center o" id="k-tag">Your reading buddy for Mac</div>
+        <div class="center serif o" id="k-reads">A free Mac app that reads any text on your screen<br />out loud, so more of it sticks.</div>
+      </div>
+
+      <div class="layer" id="demo">
+        <div id="panel">
+          <div id="prog"><div id="pg1">Listen</div><div id="pg2">Ask</div><div id="pg3">Note</div><div id="pg4">Follow</div></div>
+          <div class="step" id="st1"><div class="num">Step 1 of 4</div><div class="ttl">Listen to any text on your screen.</div><div class="how">Press the shortcut and drag over a PDF, article or chat. Lumen reads it aloud, highlights each line and scrolls for you.</div><div class="keys"><div class="key">⌥</div><div class="key">⇧</div><div class="key">4</div></div></div>
+          <div class="step" id="st2"><div class="num">Step 2 of 4</div><div class="ttl">Want to check a fact? Ask Claude.</div><div class="how">Connect your Claude account and ask out loud. The answer is spoken back, with the page on your screen as context.</div><div class="keys"><div class="key">⌥</div><div class="key">⇧</div><div class="key">A</div></div></div>
+          <div class="step" id="st3"><div class="num">Step 3 of 4</div><div class="ttl">Send Claude your thinking, not just the file.</div><div class="how">Mark the parts that matter, write a thought on each, and paste it all into Claude in one go.</div><div class="keys"><div class="key">Note for Claude</div><div class="arr">→</div><div class="key">⌘ V</div></div></div>
+          <div class="step" id="st4"><div class="num">Step 4 of 4</div><div class="ttl">Hear Claude's replies instead of reading them.</div><div class="how">Lumen reads each reply aloud as it streams in. Answer back by voice with Wispr Flow.</div><div class="keys"><div class="key">Wispr Flow</div><div class="arr">+</div><div class="key">Lumen</div></div></div>
+          <div id="cap"></div>
+          <div id="buddy"><img id="b-talk" src="assets/brand/talk.png" alt="" /><img id="b-listen" src="assets/brand/listen.png" alt="" /><img id="b-think" src="assets/brand/think.png" alt="" /><img id="b-read" src="assets/brand/read.png" alt="" /></div>
+          <div id="talkbars"><div></div><div></div><div></div><div></div><div></div><div></div></div>
+        </div>
+        <div id="device"><div id="screen">
+          <video id="v-r1" src="assets/clips/r1.mp4" muted playsinline data-start="18.45" data-duration="2.15" data-track-index="1"></video>
+          <video id="v-r2" src="assets/clips/r2.mp4" muted playsinline data-start="20.6" data-duration="2.4" data-track-index="1"></video>
+          <video id="v-r3" src="assets/clips/r3.mp4" muted playsinline data-start="23.0" data-duration="1.2" data-track-index="1"></video>
+          <video id="v-r4" src="assets/clips/r4.mp4" muted playsinline data-start="24.2" data-duration="2.8" data-track-index="1"></video>
+          <video id="v-a1" src="assets/clips/a1.mp4" muted playsinline data-start="27.0" data-duration="3.6" data-track-index="1"></video>
+          <video id="v-a2" src="assets/clips/a2.mp4" muted playsinline data-start="30.6" data-duration="4.8" data-track-index="1"></video>
+          <video id="v-n1" src="assets/clips/n1.mp4" muted playsinline data-start="35.4" data-duration="2.8" data-track-index="1"></video>
+          <video id="v-n2" src="assets/clips/n2.mp4" muted playsinline data-start="38.2" data-duration="2.0" data-track-index="1"></video>
+          <video id="v-n4" src="assets/clips/n4.mp4" muted playsinline data-start="40.2" data-duration="1.6" data-track-index="1"></video>
+          <video id="v-n3" src="assets/clips/n3.mp4" muted playsinline data-start="41.8" data-duration="1.6" data-track-index="1"></video>
+          <video id="v-f1" src="assets/clips/f1.mp4" muted playsinline data-start="43.4" data-duration="3.2" data-track-index="1"></video>
+          <video id="v-f2" src="assets/clips/f2.mp4" muted playsinline data-start="46.6" data-duration="1.8" data-track-index="1"></video>
+          <video id="v-f3" src="assets/clips/f3.mp4" muted playsinline data-start="48.4" data-duration="6.2" data-track-index="1"></video>
+        </div></div>
+      </div>
+
+      <div class="layer" id="close">
+        <img id="cheer" src="assets/brand/cheer.png" alt="" />
+        <div id="badges"><div class="badge" id="bd1">Voice runs on your Mac</div><div class="badge" id="bd2">No sign-up</div><div class="badge" id="bd3">No API key</div></div>
+        <div id="badges2"><div class="badge hot" id="bd4">Free</div></div>
+        <div class="center serif o" id="e-open">Open source.</div>
+        <div class="center o" id="e-gh"><span>github.com/jain-eshan/lumen</span></div>
+        <div class="center serif o" id="e-try">Try it. Tell us what to build next.</div>
+        <img id="e-mark" src="assets/brand/lumen-wordmark-on-light.png" alt="Lumen" />
+        <img id="e-wave" src="assets/brand/wave.png" alt="" />
+        <div class="center serif o" id="e-tag">Lumen reads to you.</div>
+        <div class="center o" id="e-url"><span>eshanjain.com/lumen</span></div>
+        <div class="center o" id="e-sub">Free Mac app · Apple silicon · open source on GitHub</div>
+        <div class="center o" id="e-by">Designed and built by Eshan Jain</div>
+      </div>
+
+      <audio id="mix" src="assets/audio/mix.wav" data-start="0" data-duration="68.0" data-track-index="5" data-volume="1"></audio>
+    </div>
+
+    <script>
+      const TL = {"words": [["AI", 0.206], ["made", 0.335], ["writing", 0.715], ["almost", 1.381], ["free,", 1.956], ["so", 2.372], ["now", 2.511], ["there's", 2.724], ["10", 3.224], ["times", 3.659], ["more", 4.02], ["to", 4.298], ["read.", 4.641], ["Replies,", 5.002], ["reports,", 5.835], ["cases,", 6.706], ["articles,", 7.52], ["every", 8.604], ["single", 8.9], ["day.", 9.261], ["Most", 9.937], ["of", 10.224], ["it", 10.381], ["gets", 10.539], ["skimmed", 10.863], ["and", 11.446], ["forgotten.", 11.669], ["Meet", 12.641], ["Lumen,", 12.928], ["your", 13.437], ["reading", 13.733], ["buddy", 14.27], ["for", 14.613], ["Mac.", 14.835], ["It", 15.307], ["reads", 15.446], ["your", 15.807], ["screen", 16.094], ["out", 16.511], ["loud", 16.854], ["so", 17.113], ["more", 17.224], ["of", 17.511], ["it", 17.576], ["sticks.", 18.094], ["Select", 18.591], ["any", 19.193], ["text.", 19.452], ["Lumen", 20.146], ["reads", 20.554], ["it", 20.952], ["to", 21.109], ["you", 21.267], ["line", 21.517], ["by", 21.831], ["line", 21.989], ["down", 22.313], ["the", 22.878], ["page.", 22.933], ["Stuck?", 27.122], ["Ask", 27.956], ["right", 28.159], ["where", 28.557], ["you", 28.826], ["are.", 29.03], ["Lumen", 29.456], ["answers", 29.78], ["out", 30.243], ["loud", 30.437], ["from", 30.687], ["what's", 31.002], ["on", 31.372], ["your", 31.502], ["screen.", 32.169], ["Want", 35.472], ["Claude's", 35.759], ["help?", 36.25], ["Mark", 36.731], ["what", 37.019], ["matters,", 37.333], ["add", 37.898], ["your", 38.074], ["thoughts,", 38.361], ["and", 38.806], ["paste", 39.093], ["it", 39.481], ["all", 39.648], ["in", 39.898], ["one", 40.037], ["go.", 40.352], ["Claude", 40.787], ["gets", 41.194], ["your", 41.417], ["context", 41.667], ["and", 42.111], ["your", 42.333], ["thinking.", 42.593], ["Then", 43.569], ["Lumen", 43.819], ["reads", 44.17], ["Claude's", 44.531], ["reply", 45.161], ["as", 45.467], ["it", 45.633], ["comes", 45.735], ["in.", 46.244], ["Answer", 46.513], ["back", 46.92], ["by", 47.281], ["voice", 47.346], ["with", 47.698], ["Wispr", 48.059], ["Flow.", 48.457], ["No", 48.994], ["more", 49.161], ["walls", 49.494], ["of", 49.957], ["text.", 50.078], ["The", 54.8], ["voice", 55.004], ["runs", 55.337], ["on", 55.606], ["your", 55.846], ["Mac.", 56.004], ["No", 56.43], ["account,", 56.624], ["no", 57.513], ["API", 57.707], ["key.", 58.087], ["Free.", 58.615], ["Lumen", 59.431], ["is", 59.839], ["open", 60.033], ["source.", 60.311], ["Try", 61.061], ["it", 61.256], ["and", 61.385], ["tell", 61.663], ["us", 61.83], ["what", 62.024], ["to", 62.228], ["build", 62.357], ["next.", 62.691], ["it", 64.381], ["reads", 64.391], ["to", 64.659], ["you.", 64.761]], "solos": [[24.8, 26.90000000000001, "Quick commerce had changed how urban India shopped."], [32.4, 35.059999999999995, "My thesis is that it's mostly an industry-wide pattern…"], [50.65, 54.549999999999976, "Final answer: go with Option 2, own ten-minute delivery from Kettle's stores."]], "clips": [["r1", 18.45, 2.15], ["r2", 20.6, 2.4], ["r3", 23.0, 1.2], ["r4", 24.2, 2.8], ["a1", 27.0, 3.6], ["a2", 30.6, 4.8], ["n1", 35.4, 2.8], ["n2", 38.2, 2.0], ["n4", 40.2, 1.6], ["n3", 41.8, 1.6], ["f1", 43.4, 3.2], ["f2", 46.6, 1.8], ["f3", 48.4, 6.2]], "end": 68.0}; // TL
+      const tl = gsap.timeline({ paused: true });
+      const pop = (sel, at, d = 0.4, from = { y: 30, scale: 0.92 }) => tl.fromTo(sel, { opacity: 0, ...from }, { opacity: 1, y: 0, x: 0, scale: 1, duration: d, ease: "back.out(1.8)", immediateRender: false }, at);
+      const out = (sel, at, d = 0.25) => tl.to(sel, { opacity: 0, duration: d, ease: "power2.in" }, at);
+
+      // ---------- 1. Hook ----------
+      const fw = document.querySelectorAll("#k-free .w");
+      [0.21, 0.34, 0.71, 1.38, 1.96].forEach((t, i) => tl.fromTo(fw[i], { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.3, ease: "back.out(2.2)", immediateRender: i === 0 }, t));
+      out("#k-free", 2.25, 0.2);
+      pop("#k-so", 2.35, 0.3);
+      const cnt = document.getElementById("k-cnt");
+      for (let i = 1; i <= 10; i++) { const d = document.createElement("div"); d.className = "cnt serif"; d.id = "cn" + i; d.textContent = i + "×"; cnt.appendChild(d); }
+      for (let i = 1; i <= 10; i++) {
+        const t = 2.4 + (i - 1) * 0.09;
+        tl.set("#cn" + i, { opacity: 1 }, t);
+        if (i < 10) tl.set("#cn" + i, { opacity: 0 }, t + 0.09);
+      }
+      tl.fromTo("#cn10", { scale: 1.25 }, { scale: 1, duration: 0.5, ease: "elastic.out(1, 0.5)", immediateRender: false }, 3.22);
+      pop("#k-more", 4.0, 0.35);
+      out(["#k-so", "#cn10", "#k-more"], 4.75, 0.2);
+      [[1, 5.0, -4], [2, 5.84, 3], [3, 6.71, -2], [4, 7.52, 4]].forEach(([n, t, r]) => {
+        tl.fromTo("#c" + n, { opacity: 0, y: 260, rotation: r * 3 }, { opacity: 1, y: 0, rotation: r, duration: 0.45, ease: "back.out(1.6)", immediateRender: false }, t);
+        pop("#lb" + n, t + 0.05, 0.35);
+      });
+      // the wall: every kind of reading, everywhere
+      const wall = document.getElementById("wall");
+      let m = 0;
+      for (let r = 0; r < 4; r++) for (let c = 0; c < 8; c++) {
+        const d = document.createElement("div"); d.className = "mini"; d.id = "mi" + m;
+        d.style.left = (40 + c * 232 + (r % 2) * 40) + "px"; d.style.top = (20 + r * 268) + "px";
+        for (let k = 0; k < 9; k++) { const l = document.createElement("div"); l.className = "ln" + (k % 4 === 0 ? " b" : ""); l.style.width = (55 + ((k * 37 + m * 13) % 45)) + "%"; d.appendChild(l); }
+        wall.appendChild(d);
+        tl.fromTo(d, { opacity: 0, scale: 0.6, rotation: ((m * 7) % 11) - 5 }, { opacity: 1, scale: 1, duration: 0.3, ease: "back.out(1.6)", immediateRender: false }, 8.45 + m * 0.022);
+        m++;
+      }
+      out(["#c1", "#c2", "#c3", "#c4", "#lb1", "#lb2", "#lb3", "#lb4"], 8.45, 0.2);
+      pop("#k-every", 8.6, 0.35);
+      out("#k-every", 9.75, 0.2);
+      tl.to("#wall", { filter: "blur(8px)", opacity: 0.35, duration: 0.4 }, 9.85);
+      pop("#k-eyes", 9.93, 0.35);
+      pop("#k-ears", 11.45, 0.35);
+      // forgotten: the pile falls away
+      for (let i = 0; i < m; i++) tl.to("#mi" + i, { y: 700, rotation: ((i * 13) % 30) - 15, opacity: 0, duration: 0.55, ease: "power2.in" }, 11.6 + (i % 8) * 0.03 + Math.floor(i / 8) * 0.02);
+      out(["#k-eyes", "#k-ears"], 12.4, 0.2);
+      tl.fromTo("#fly", { opacity: 0, x: 820, y: 900, scale: 0.6, rotation: -15 }, { opacity: 1, x: 1215, y: 250, scale: 1, rotation: 6, duration: 0.9, ease: "power2.out", immediateRender: false }, 12.45);
+      tl.to("#fly", { y: 228, rotation: -4, duration: 0.45, ease: "sine.inOut", yoyo: true, repeat: 11 }, 13.35);
+      [["#wv1", 15.45], ["#wv2", 15.75], ["#wv3", 16.05]].forEach(([s, t]) => tl.fromTo(s, { opacity: 0.9, scale: 0.3, x: 1290, y: 330 }, { opacity: 0, scale: 3.2, duration: 1.0, ease: "power1.out", immediateRender: false }, t));
+      tl.fromTo("#mark", { opacity: 0, scale: 0.9 }, { opacity: 1, scale: 1, duration: 0.5, ease: "back.out(1.8)", immediateRender: false }, 12.75);
+      pop("#k-tag", 13.65, 0.35);
+      pop("#k-reads", 15.3, 0.35);
+      out(["#mark", "#k-tag", "#k-reads", "#fly"], 18.1, 0.25);
+
+      // ---------- 2. Demo ----------
+      tl.fromTo("#device", { opacity: 0, x: 300 }, { opacity: 1, x: 0, duration: 0.5, ease: "power3.out", immediateRender: false }, 18.25);
+      tl.fromTo("#panel", { opacity: 0, x: -60 }, { opacity: 1, x: 0, duration: 0.5, ease: "power3.out", immediateRender: false }, 18.3);
+      [[1, 18.4, 27.0], [2, 27.0, 35.4], [3, 35.4, 43.4], [4, 43.4, 54.6]].forEach(([n, a, b]) => {
+        pop("#st" + n, a + 0.05, 0.4, { y: 24 });
+        out("#st" + n, b - 0.2, 0.2);
+        tl.to("#pg" + n, { color: "#171527", duration: 0.2 }, a);
+        tl.to("#pg" + n, { color: "rgba(23,21,39,0.3)", duration: 0.2 }, b);
+      });
+      // captions: one sentence at a time, words appear as they are spoken
+      const capEl = document.getElementById("cap");
+      const groups = []; let g = null;
+      TL.words.filter(([, t]) => t >= 18.4 && t < 54.6).forEach(([w, t]) => {
+        if (!g) { g = { a: t, ws: [] }; groups.push(g); }
+        g.ws.push([w, t]);
+        if (/[.?]$/.test(w)) g = null;
+      });
+      const items = groups.map((x) => ({ a: x.a - 0.05, ws: x.ws })).concat(TL.solos.map(([a, b, text], k) => ({ a, b, text, lumen: true, lab: ["LUMEN READING THE CASE", "CLAUDE'S ANSWER, READ ALOUD", "CLAUDE'S REPLY, READ ALOUD"][k] })));
+      items.sort((p, q) => p.a - q.a);
+      items.forEach((it, i) => {
+        const nx = items[i + 1];
+        const b = it.lumen ? it.b : (nx ? Math.min(nx.a, it.ws[it.ws.length - 1][1] + 2.2)   : 54.5);
+        const el = document.createElement("div"); el.className = "cg" + (it.lumen ? " lumen" : ""); capEl.appendChild(el);
+        if (it.lumen) {
+          el.innerHTML = '<span class="lab">' + it.lab + '</span>“' + it.text + "”";
+        } else {
+          it.ws.forEach(([w, t]) => {
+            const s = document.createElement("span"); s.className = "w"; s.textContent = w; el.appendChild(s); el.appendChild(document.createTextNode(" "));
+            tl.fromTo(s, { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.15, ease: "power2.out", immediateRender: false }, t);
+          });
+        }
+        tl.set(el, { opacity: 1 }, it.a);
+        tl.to(el, { opacity: 0, duration: 0.12 }, Math.min(b, 54.5) - 0.12);
+      });
+      // the moth reacts to each moment
+      tl.fromTo("#buddy", { y: 40, opacity: 0 }, { y: 0, opacity: 1, duration: 0.45, ease: "back.out(2)", immediateRender: false }, 18.5);
+      tl.to("#buddy img", { y: -10, duration: 0.42, ease: "sine.inOut", yoyo: true, repeat: 85 }, 18.5);
+      [["read", 18.4, 20.6], ["talk", 20.6, 27.0], ["listen", 27.0, 29.5], ["think", 29.5, 32.3], ["talk", 32.3, 35.4], ["read", 35.4, 43.4],
+       ["talk", 43.4, 46.6], ["listen", 46.6, 48.4], ["talk", 48.4, 54.6]].forEach(([p, a, b]) => { tl.set("#b-" + p, { opacity: 1 }, a); tl.set("#b-" + p, { opacity: 0 }, b); });
+      TL.solos.forEach(([a, b]) => {
+        tl.set("#talkbars", { opacity: 1 }, a); tl.set("#talkbars", { opacity: 0 }, b);
+        document.querySelectorAll("#talkbars div").forEach((d, i) => tl.fromTo(d, { height: 14 }, { height: 26 + (i % 3) * 14, duration: 0.18 + (i % 2) * 0.07, ease: "sine.inOut", yoyo: true, repeat: Math.floor((b - a) / 0.2), immediateRender: false }, a));
+      });
+      out(["#panel", "#buddy"], 54.45, 0.2);
+      tl.to("#device", { opacity: 0, y: 40, duration: 0.25, ease: "power2.in" }, 54.45);
+
+      // ---------- 3. Trust ----------
+      tl.fromTo("#cheer", { opacity: 0, y: 80, scale: 0.6 }, { opacity: 1, y: 0, scale: 1, duration: 0.5, ease: "back.out(2)", immediateRender: false }, 54.75);
+      tl.to("#cheer", { y: -26, duration: 0.3, ease: "power2.out", yoyo: true, repeat: 7 }, 55.3);
+      [["#bd1", 55.95], ["#bd2", 56.4], ["#bd3", 57.48], ["#bd4", 58.58]].forEach(([s, t]) => pop(s, t, 0.4, { y: 40, scale: 0.7 }));
+      out(["#cheer", "#bd1", "#bd2", "#bd3", "#bd4"], 59.2, 0.2);
+
+      // ---------- 4. Close ----------
+      pop("#e-open", 59.95, 0.4);
+      pop("#e-gh", 60.5, 0.4);
+      pop("#e-try", 61.0, 0.4);
+      out(["#e-open", "#e-gh", "#e-try"], 63.1, 0.2);
+      tl.fromTo("#e-mark", { opacity: 0, scale: 0.9 }, { opacity: 1, scale: 1, duration: 0.5, ease: "back.out(1.8)", immediateRender: false }, 63.35);
+      tl.fromTo("#e-wave", { opacity: 0, x: 140, y: -80, rotation: 12 }, { opacity: 1, x: 0, y: 0, rotation: 0, duration: 0.7, ease: "back.out(1.6)", immediateRender: false }, 63.45);
+      tl.to("#e-wave", { rotation: -6, duration: 0.35, ease: "sine.inOut", yoyo: true, repeat: 9 }, 64.2);
+      pop("#e-tag", 63.85, 0.4);
+      pop("#e-url", 64.6, 0.45);
+      pop("#e-sub", 65.0, 0.4);
+      pop("#e-by", 65.4, 0.4);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>
