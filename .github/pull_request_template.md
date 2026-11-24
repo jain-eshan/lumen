@@ -2,8 +2,7 @@
 
 ## How it was checked
 
-- [ ] `Lumen.app/Contents/MacOS/Lumen --selftest`: every line says PASS
-- [ ] `evals/run.sh Lumen.app`, if reading or Follow changed
+- [ ] The Checks run on this pull request is green (self-tests, render check, Follow eval)
 - [ ] For a bug fix: a scenario or self-test that fails without the fix
 
 ## Not checked

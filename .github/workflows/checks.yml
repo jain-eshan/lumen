@@ -1,0 +1,58 @@
+# Runs Lumen's self-tests, a render check and the Follow eval on every pull request and on every push to main.
+# A red check means one of them failed: the step's log shows which line said FAIL.
+#
+# What this cannot cover, because a hosted runner is a bare virtual machine:
+#   - The app is built with plain swiftc, not app/build.sh. build.sh needs the signing keychain (.signing/), the
+#     Python voice engine (envs/) and the voice model (models/), none of which are in git. So CI checks the
+#     reading logic, not the signed, packed app that people download.
+#   - No sound is played and the voice engine is never started. The eval does not need either: it reads a drawn
+#     page and records what Lumen would say.
+#   - The eval uses the on-device director, as it does on a machine where "Richer voice with Claude" is off. The
+#     Claude-planned path needs the Claude app and a login, so it is not run here (issue #14).
+#   - Follow is checked against a drawn stand-in for the Claude chat, never the real app (issue #13).
+#   - The runner is macOS 15. Lumen supports macOS 14, but GitHub has retired its macOS 14 runners, so macOS 14
+#     itself is not tested.
+name: Checks
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+# A new push to the same branch cancels the run that is still going.
+concurrency:
+  group: checks-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # Same layout as the real app, so the commands below are the ones in CONTRIBUTING.md.
+      - name: Build
+        run: |
+          mkdir -p Lumen.app/Contents/MacOS
+          swiftc -O app/*.swift -o Lumen.app/Contents/MacOS/Lumen
+
+      # Prints one line per check and exits non-zero if any says FAIL.
+      - name: Self-tests
+        run: Lumen.app/Contents/MacOS/Lumen --selftest
+
+      # Draws the app's own screens to PNGs. Catches a crash, and a drawing step that silently writes nothing.
+      - name: Render the app's screens
+        run: |
+          mkdir previews
+          Lumen.app/Contents/MacOS/Lumen --render-ui=previews
+          count=$(find previews -name '*.png' -size +0 | wc -l)
+          echo "$count images written"
+          [ "$count" -ge 20 ]
+
+      # One line per scenario, PASS or FAIL, and exits non-zero if any failed.
+      - name: Follow eval
+        run: zsh evals/run.sh Lumen.app
