@@ -1,8 +1,8 @@
 <p align="center"><img src="brand/lumen-wordmark-banner.png" alt="Lumen" width="640"></p>
 
-<p align="center"><b>Lumen reads to you.</b><br>A small moth on your Dock that reads your screen aloud.</p>
+<p align="center"><b>Lumen reads to you.</b><br>Your reading buddy for Mac. It reads any text on your screen out loud, so more of it sticks.</p>
 
-<p align="center"><a href="https://github.com/jain-eshan/lumen/releases/latest">Download for Mac</a> · <a href="https://www.eshanjain.com/lumen">Install guide</a> · <a href="https://github.com/jain-eshan/lumen/releases/download/v1.2/narrator-demo.mp4">Watch the 50-second demo</a></p>
+<p align="center"><a href="https://github.com/jain-eshan/lumen/releases/latest">Download for Mac</a> · <a href="https://www.eshanjain.com/lumen">Install guide</a> · <a href="https://github.com/jain-eshan/lumen/releases/download/v1.4.1/lumen-demo.mp4">Watch the 68-second demo</a></p>
 
 <p align="center"><a href="https://github.com/jain-eshan/lumen/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/jain-eshan/lumen?color=E8A33D&labelColor=171527"></a> <a href="LICENSE"><img alt="License: GPL-3.0" src="https://img.shields.io/badge/license-GPL--3.0-8E7FA6?labelColor=171527"></a> <img alt="macOS 14 or later, Apple silicon" src="https://img.shields.io/badge/macOS-14%2B%20%C2%B7%20Apple%20silicon-F3EAD8?labelColor=171527"></p>
 
@@ -12,7 +12,7 @@ Lumen, the reading moth for Mac, was called Narrator until version 1.3.2. Same a
 
 Lumen is a Mac menu bar app for the long stuff you were going to skip: Claude replies, articles, docs, email threads. Point it at any part of your screen and it reads it to you in a natural voice, highlighting each line as it goes. It keeps up with Claude as new replies stream in, and it answers questions about what's on screen. When you want Claude's help with a document, Note for Claude lets you mark parts of it, write a thought on each, and paste them all into a chat at once. Lumen is also the small moth who lives on your Dock and reads along with you.
 
-[![Watch the 50-second demo](docs/demo-poster.jpg)](https://github.com/jain-eshan/lumen/releases/download/v1.2/narrator-demo.mp4)
+[![Watch the 68-second demo](docs/demo-poster.jpg)](https://github.com/jain-eshan/lumen/releases/download/v1.4.1/lumen-demo.mp4)
 
 Reading runs entirely on your Mac. The voice is Kokoro, running locally: no tokens, no API keys, no account, and it works offline. Two optional features use your Claude plan through the `claude` command: richer reading direction (off by default) and Ask.
 
@@ -105,7 +105,6 @@ Lumen is young and small, so here is what to expect. Each item links to its issu
 - **Follow sometimes starts late.** One report of a reply read only after a keypress is still [being investigated](https://github.com/jain-eshan/lumen/issues/12).
 - **Follow tells your messages from Claude's by position.** [It can misjudge](https://github.com/jain-eshan/lumen/issues/16) an unusual layout, and its [safety net](https://github.com/jain-eshan/lumen/issues/15) may repeat a sentence on rare occasions.
 - **The build steps** have [not been tried on a clean Mac](https://github.com/jain-eshan/lumen/issues/19).
-- **The demo video** still says Narrator ([to re-render](https://github.com/jain-eshan/lumen/issues/20)).
 
 All open items are in [Issues](https://github.com/jain-eshan/lumen/issues), and what changed in each version is in the [changelog](CHANGELOG.md).
 
@@ -188,7 +187,7 @@ The app finds the lantern in each pose by itself, so a new sheet needs no measur
 
 ## Demo video
 
-The demo is a [HyperFrames](https://hyperframes.heygen.com) project in `videos/narrator-demo/`, built from the app's real parts: Lumen's poses and the purpose box, Ask box and playback bar as rendered by the app itself (`--render-ui`). It is narrated in the app's own default voice (Kokoro, Heart) and made entirely on this Mac. It was made before the rename, so it says Narrator. `BRIEF.md` holds the brand and audience, `STORYBOARD.md` the eight frames shot by shot, and `SCRIPT.md` the narration. `videos/narrator-demo/tools/README.txt` lists the rebuild steps. The narration, mixed music bed and renders are generated, so they are not in git.
+The demo is a [HyperFrames](https://hyperframes.heygen.com) project in `videos/lumen-launch/`, cut from real screen recordings of Lumen 1.4.1 reading a fictional MBA case, answering a question, sending notes to Claude and following Claude's replies. The voice you hear in the gaps is Lumen's own. `videos/lumen-launch/README.md` has the story, the script and the rebuild steps. The screen recordings, narration, music and renders are not in git. The first demo, made before the rename, is in `videos/narrator-demo/`.
 
 ## Layout
 
@@ -211,7 +210,8 @@ The demo is a [HyperFrames](https://hyperframes.heygen.com) project in `videos/n
 - `app/lumen/`: Lumen's poses, bundled into the app
 - `brand/`: the brand guide, logo, wordmark and colours
 - `art/`: Lumen's concept, pose sheet, the cut-out tool and the logo source images
-- `videos/narrator-demo/`: the demo video's sources and tools
+- `videos/lumen-launch/`: the launch demo video's sources and build script
+- `videos/narrator-demo/`: the first demo video (made before the rename), kept for reference
 - `docs/`: images used in this README
 - `scripts/kokoro_server.py`: the speech service the app starts
 - `scripts/`: the other files are voice experiments from early development
@@ -226,9 +226,10 @@ Lumen is designed, built and maintained by [Eshan Jain](https://www.eshanjain.co
 
 - Voice: [Kokoro-82M](https://huggingface.co/hexgrad/Kokoro-82M) (Apache-2.0), run with [mlx-audio](https://github.com/Blaizzy/mlx-audio).
 - Lumen: an original character, generated with an image model and cut out with Apple's Vision.
-- Demo music: "Blue Skies" by [Holizna](https://freemusicarchive.org/music/holiznacc0/), CC0 1.0, from Free Music Archive.
+- Demo music: "Corporate Marimba Startup Promo" by Alex Morgan, Pixabay Content License. The first demo used "Blue Skies" by [Holizna](https://freemusicarchive.org/music/holiznacc0/), CC0 1.0.
+- Demo narration: ElevenLabs (voice "Emma").
 - Demo sound effects: Pixabay Content License, bundled with HyperFrames.
-- Demo fonts: Instrument Serif and Archivo, SIL Open Font License 1.1 (`videos/narrator-demo/assets/fonts/LICENSE.txt`).
+- Demo fonts: Instrument Serif and Archivo, SIL Open Font License 1.1 (`videos/lumen-launch/assets/fonts/LICENSE.txt`).
 
 ## License
 

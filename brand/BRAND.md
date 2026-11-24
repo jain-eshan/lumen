@@ -16,8 +16,9 @@ The app was called Narrator until version 1.3.2. Say "Lumen (formerly Narrator)"
 | Use | Text |
 |---|---|
 | Tagline | Lumen reads to you. |
-| One line (under 60 characters) | A small moth on your Dock that reads your screen aloud |
-| Short description | Lumen is a Mac app that reads anything on your screen out loud, line by line, in a natural voice that runs entirely on your Mac. Point it at a Claude reply, an article or a long email thread, and a small moth on your Dock reads along with you. No account, no API key, works offline. |
+| Positioning | Your reading buddy for Mac |
+| One line (under 60 characters) | Your reading buddy for Mac. It reads your screen aloud. |
+| Short description | Lumen is your reading buddy for Mac. It reads any text on your screen out loud, line by line, so more of it sticks. Point it at a long Claude thread, a case study or a report, ask Claude about what you are reading, and hear Claude's replies instead of reading them. The voice runs on your Mac: no account, no API key, free. |
 | Proof points | Reads anything you can see. The voice runs on your Mac. Lumen keeps you company. |
 
 ## Voice
@@ -76,3 +77,4 @@ The look is a warm light in a dark room. Mostly night ink and cream, a little la
 | eshanjain.com/lumen | Landing page, case study, share image |
 | Product Hunt | Name, tagline, thumbnail, gallery |
 | Release notes and posts | Name, voice, the "formerly Narrator" line |
+| Launch video (`videos/lumen-launch/`) | The story: AI made writing cheap, so most of it gets skimmed and forgotten; Lumen reads it to you so it sticks |

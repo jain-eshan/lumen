@@ -1,0 +1,12 @@
+# Generated or third-party media: rebuild with tools/build_media.sh and a HyperFrames render
+raw/
+renders/
+assets/clips/
+assets/stills/
+assets/audio/
+assets/vo/*
+!assets/vo/vo-w1.json
+!assets/vo/vo-w2.json
+assets/music/
+voice-samples/
+.hyperframes/
