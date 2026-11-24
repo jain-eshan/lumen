@@ -174,6 +174,8 @@ Follow mode, which reads a chat as the replies arrive, also has an eval. It read
 evals/run.sh Lumen.app
 ```
 
+GitHub runs the self-tests, a check that the app draws its screens, and this eval on every pull request and every push to `main` ([`.github/workflows/checks.yml`](.github/workflows/checks.yml)). It builds the app with plain `swiftc`, so it does not cover the signed app, the voice engine or sound.
+
 ## Lumen's art
 
 The logo, wordmark, colours and voice live in [`brand/`](brand/BRAND.md). Read `brand/BRAND.md` before making anything with the Lumen name on it.
