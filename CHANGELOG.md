@@ -14,7 +14,14 @@ Fixes to Follow, the mode that reads Claude's replies as they arrive. It was mis
 - **A longer pause between paragraphs.**
 - **A safety net.** Text that sits on screen unread for 6 seconds while nothing else is happening is read anyway, and the log says `guard:`.
 - **A clearer log.** Pauses, resumes and every scroll (where it landed and whether the page moved) are recorded. The log never contains the text on screen.
-- **Checks you can run.** `evals/run.sh` reads a drawn stand-in for the Claude chat with nothing showing on screen, one scenario per reported failure. There are 122 self-tests.
+- **Checks you can run.** `evals/run.sh` reads a drawn stand-in for the Claude chat with nothing showing on screen, one scenario per reported failure. There are 133 self-tests.
+
+Also in this version, outside Follow:
+
+- **Answers stay on screen.** Ask used to show one sentence at a time in a small strip that vanished a few seconds after the answer ended. The answer now appears in a card with the whole text at 17pt, the sentence being spoken highlighted, and buttons to open the source, copy the answer and stop the voice. It stays until you close it with Esc or ×, and a box underneath takes a follow-up.
+- **Bigger text in the boxes.** The question field is 17pt (was 15) and the hint lines 12.5pt (was 11.5), in the Ask, purpose and note boxes.
+- **Move any box.** Drag the playback bar, the Ask box, the answer card, the purpose box, the note box or the notes tray by their background if one covers something you need to see. Each opens in the new spot next time, on whichever display you put it. The tray no longer jumps back to the side when you add a part.
+- **Lumen follows your Dock.** She now reads the Dock's real position on every step. If you resize the Dock, move it to another display, hide it or have none at the bottom, she walks or flutters onto the new floor instead of hovering where the Dock used to be. With no Dock at the bottom she stands on the screen's bottom edge, clear of a Dock at the side.
 
 Known open items are tracked in [Issues](https://github.com/jain-eshan/lumen/issues).
 

@@ -47,8 +47,9 @@ The menu then shows **Claude connected**. Lumen only uses a Claude plan. If Clau
 - **Keep up with Claude.** Follow mode reads new replies as they stream in, scrolls down by itself to read a long reply to the end, and skips your own messages. It switches on when you read a Claude, ChatGPT, Gemini, Perplexity or Copilot window, or when you say you want the replies. Only Claude has been tested so far.
 - **Jump.** Click any sentence and it carries on from there.
 - **Note for Claude.** Mark parts of any document, write a thought on each, and paste them all into Claude at once. See [Note for Claude](#note-for-claude) below.
-- **Ask.** Press Option + Shift + A to ask about what's on screen. Type, or dictate with any dictation app you already use, then press Return. Ask needs Claude connected, as described above.
-- **Lumen.** The moth lives on top of your Dock. It wanders and reads to itself, flies over to the icon of the app you're reading, and its mouth and lantern follow the voice. It listens while you ask, thinks while Claude works, and falls asleep after a few quiet minutes. Hover over it for a tip, click it to start or pause, or pick it up and drop it. It steps aside when your pointer is over the Dock below it. Turn it off from the menu bar, or choose Keep Lumen in one place and it stays wherever you drop it, with no wandering or following. With Reduce Motion on, it stays put.
+- **Ask.** Press Option + Shift + A to ask about what's on screen. Type, or dictate with any dictation app you already use, then press Return. The answer is spoken and also written out in a card that stays until you close it with Esc, with a box underneath for a follow-up. Ask needs Claude connected, as described above.
+- **Move any box.** Lumen's boxes (the playback bar, the Ask box and its answer, the purpose box, the note box and the notes tray) can be dragged by their background if one covers something you want to see. They open in the new spot next time.
+- **Lumen.** The moth lives on top of your Dock. It wanders and reads to itself, flies over to the icon of the app you're reading, and its mouth and lantern follow the voice. It listens while you ask, thinks while Claude works, and falls asleep after a few quiet minutes. Hover over it for a tip, click it to start or pause, or pick it up and drop it. It steps aside when your pointer is over the Dock below it. It reads where your Dock is and stays on it: if you resize the Dock, move it to another display or hide it, Lumen walks or flutters onto the new spot, and with no Dock at the bottom it stands on the bottom edge of the screen (clear of a Dock at the side). Turn it off from the menu bar, or choose Keep Lumen in one place and it stays wherever you drop it, with no wandering or following. With Reduce Motion on, it stays put.
 
 ## Note for Claude
 
@@ -84,9 +85,9 @@ All shortcuts use Option + Shift.
 | Option + Shift + Space | Play or pause |
 | Option + Shift + , | Skip back |
 | Option + Shift + . | Skip forward |
-| Option + Shift + A | Ask a question. Press again to send it, or to close the box when it's empty |
+| Option + Shift + A | Ask a question. Press again to send it, or to close the box when it's empty. With an answer showing, it goes to the follow-up box |
 | Option + Shift + J | Jump to a sentence |
-| Esc | Cancel a selection or jump |
+| Esc | Cancel a selection or jump, or close an answer |
 
 ## Privacy
 

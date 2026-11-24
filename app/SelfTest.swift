@@ -352,6 +352,44 @@ func runSelfTest() -> Int32 {
     check("the selector never hands on its own scroll again", handedOn == 1)
     SelectionView.handOn = realHandOn
 
+    // Where Lumen stands: a laptop with a menu bar, and a second display beside it.
+    let laptop = CGRect(x: 0, y: 0, width: 1470, height: 956), desk = CGRect(x: 1470, y: 0, width: 1180, height: 820)
+    func screens(laptopVisible: CGRect, deskVisible: CGRect) -> [(frame: CGRect, visible: CGRect)] {
+        [(laptop, laptopVisible), (desk, deskVisible)]
+    }
+    let noDock = lumenGround(screens: screens(laptopVisible: CGRect(x: 0, y: 0, width: 1470, height: 923), deskVisible: desk), x: 300)
+    check("with no Dock, Lumen stands on the bottom edge", noDock.floor == 0 && !noDock.bottomDock && noDock.range == 70...1400)
+    let onDesk = lumenGround(screens: screens(laptopVisible: laptop, deskVisible: CGRect(x: 1470, y: 61, width: 1180, height: 759)), x: 300)
+    check("a Dock on the other display is her floor, wherever she was", onDesk.floor == 58 && onDesk.bottomDock && onDesk.range == 1540...2580)
+    let sideDock = lumenGround(screens: screens(laptopVisible: CGRect(x: 80, y: 0, width: 1390, height: 923), deskVisible: desk), x: 300)
+    check("a Dock at the side leaves Lumen on the bottom edge, clear of it", sideDock.floor == 0 && !sideDock.bottomDock && sideDock.range == 150...1400)
+    let hiddenOnDesk = lumenGround(screens: screens(laptopVisible: laptop, deskVisible: desk), x: 2000)
+    check("with no Dock, she stays on the display she is on", hiddenOnDesk.floor == 0 && hiddenOnDesk.range == 1540...2580)
+    let taller = lumenGround(screens: screens(laptopVisible: laptop, deskVisible: CGRect(x: 1470, y: 91, width: 1180, height: 729)), x: 2000)
+    check("a taller Dock raises her floor straight away", taller.floor == 88)
+
+    // A box the reader drags out of the way stays there.
+    var memory = DragMemory()
+    let box = NSPanel(floatingAt: .floating, frame: NSRect(x: 100, y: 500, width: 300, height: 80))
+    memory.place(box, home: NSPoint(x: 100, y: 500), on: laptop, opening: true, among: [laptop])
+    check("a box opens where Lumen puts it", box.frame.origin == NSPoint(x: 100, y: 500))
+    box.setFrameOrigin(NSPoint(x: 600, y: 300))
+    memory.place(box, home: NSPoint(x: 100, y: 440), on: laptop, among: [laptop])
+    check("a dragged box stays put while its text changes", box.frame.origin == NSPoint(x: 600, y: 240))
+    box.setFrameOrigin(NSPoint(x: 650, y: 240))
+    memory.noteDrag(of: box)
+    let reopened = NSPanel(floatingAt: .floating, frame: NSRect(x: 100, y: 440, width: 300, height: 80))
+    memory.place(reopened, home: NSPoint(x: 100, y: 440), on: laptop, opening: true, among: [laptop])
+    check("a box opens again where it was dragged to", reopened.frame.origin == NSPoint(x: 650, y: 240))
+    memory.place(reopened, home: NSPoint(x: 1700, y: 440), on: desk, opening: true, among: [laptop, desk])
+    check("a box starts afresh when Lumen moves to another screen", reopened.frame.origin == NSPoint(x: 1700, y: 440))
+    reopened.setFrameOrigin(NSPoint(x: 1900, y: 300))
+    memory.place(reopened, home: NSPoint(x: 1700, y: 440), on: desk, among: [laptop, desk])
+    check("a box can be dragged to the other display", reopened.frame.origin == NSPoint(x: 1900, y: 300))
+    reopened.setFrameOrigin(NSPoint(x: 9000, y: 300))
+    memory.place(reopened, home: NSPoint(x: 1700, y: 440), on: desk, among: [laptop, desk])
+    check("a box dragged off every screen comes back on screen", desk.contains(reopened.frame))
+
     print(failures == 0 ? "All self-tests passed" : "\(failures) self-tests failed")
     return failures == 0 ? 0 : 1
 }

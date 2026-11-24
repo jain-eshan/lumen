@@ -30,6 +30,35 @@ extension NSView {
     }
 }
 
+/// Where the reader dragged a box, kept as the distance from where Lumen would put it. The box then opens there next
+/// time, and stays there while its text changes, instead of jumping back. A box is dragged by its background, so each
+/// panel sets `isMovableByWindowBackground`.
+struct DragMemory {
+    private var offset = CGPoint.zero
+    private var placed: (origin: NSPoint, home: NSPoint, screen: NSRect)?
+
+    /// Notices that the panel was dragged since it was last placed.
+    mutating func noteDrag(of panel: NSPanel) {
+        guard let placed, panel.frame.origin != placed.origin else { return }
+        offset = CGPoint(x: panel.frame.origin.x - placed.home.x, y: panel.frame.origin.y - placed.home.y)
+    }
+
+    /// Puts the panel at `home` plus the remembered distance, kept fully on whichever screen it lands on. When `home`
+    /// moves to a different screen, the distance is forgotten and the box starts afresh. A panel just opened has not
+    /// been dragged yet, so it passes `opening`; a box that closes first calls `noteDrag`.
+    mutating func place(_ panel: NSPanel, home: NSPoint, on screen: NSRect, opening: Bool = false, among screens: [NSRect] = NSScreen.screens.map(\.frame)) {
+        if placed?.screen != screen { offset = .zero } else if !opening { noteDrag(of: panel) }
+        let wanted = NSPoint(x: home.x + offset.x, y: home.y + offset.y)
+        let size = panel.frame.size
+        let centre = NSPoint(x: wanted.x + size.width / 2, y: wanted.y + size.height / 2)
+        let inside = screens.first { $0.contains(centre) } ?? screen
+        let origin = NSPoint(x: min(max(wanted.x, inside.minX), max(inside.maxX - size.width, inside.minX)),
+                             y: min(max(wanted.y, inside.minY), max(inside.maxY - size.height, inside.minY)))
+        panel.setFrameOrigin(origin)
+        placed = (origin, home, screen)
+    }
+}
+
 /// The rounded dark panel behind the purpose box and the playback bar.
 final class SurfaceView: NSView {
     var radius: CGFloat = 18
