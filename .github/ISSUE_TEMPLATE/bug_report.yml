@@ -1,0 +1,49 @@
+name: Bug report
+description: Lumen did something wrong, or did not do something it should
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time. The more exactly you can say what happened, the faster it gets fixed.
+        For a security problem, please do not use this form. See SECURITY.md.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What did you expect, and what did Lumen do instead?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Which app were you reading, what did you select, and what did you do next?
+      placeholder: |
+        1. Open Claude and ask a long question
+        2. Press Option + Shift + 4 and drag over the whole window
+        3. ...
+    validations:
+      required: true
+  - type: input
+    id: lumen-version
+    attributes:
+      label: Lumen version
+      description: In Finder, select Lumen and press Command + I.
+      placeholder: "1.4.1"
+    validations:
+      required: true
+  - type: input
+    id: macos-version
+    attributes:
+      label: macOS version
+      placeholder: "macOS 15.1, Apple silicon"
+    validations:
+      required: true
+  - type: textarea
+    id: log
+    attributes:
+      label: Log (optional, but it helps a lot)
+      description: |
+        The last 100 lines of ~/Library/Logs/Narrator/narrator.log. It records events such as scrolls, pauses and timings, never the text on screen. Please read it before pasting.
+      render: text
