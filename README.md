@@ -4,6 +4,8 @@
 
 <p align="center"><a href="https://github.com/jain-eshan/lumen/releases/latest">Download for Mac</a> · <a href="https://www.eshanjain.com/lumen">Install guide</a> · <a href="https://github.com/jain-eshan/lumen/releases/download/v1.2/narrator-demo.mp4">Watch the 50-second demo</a></p>
 
+<p align="center"><a href="https://github.com/jain-eshan/lumen/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/jain-eshan/lumen?color=E8A33D&labelColor=171527"></a> <a href="LICENSE"><img alt="License: GPL-3.0" src="https://img.shields.io/badge/license-GPL--3.0-8E7FA6?labelColor=171527"></a> <img alt="macOS 14 or later, Apple silicon" src="https://img.shields.io/badge/macOS-14%2B%20%C2%B7%20Apple%20silicon-F3EAD8?labelColor=171527"></p>
+
 # Lumen
 
 Lumen, the reading moth for Mac, was called Narrator until version 1.3.2. Same app, new name.
@@ -42,7 +44,7 @@ The menu then shows **Claude connected**. Lumen only uses a Claude plan. If Clau
 - **Tune it.** Say what it's for, pick a mood (Calm, Warm, Serious, News, Story, or Auto) and a voice: a woman or a man, with an American or British accent, or Auto to match what you're reading. Click a voice to hear a sample first.
 - **Sit back.** It reads line by line and highlights each one as it goes, then scrolls on by itself.
 - **Tables make sense.** A table is read row by row, with each value named by its column, instead of column by column.
-- **Keep up with Claude.** Follow mode reads new replies as they stream in.
+- **Keep up with Claude.** Follow mode reads new replies as they stream in, scrolls down by itself to read a long reply to the end, and skips your own messages. It switches on when you read a Claude, ChatGPT, Gemini, Perplexity or Copilot window, or when you say you want the replies. Only Claude has been tested so far.
 - **Jump.** Click any sentence and it carries on from there.
 - **Note for Claude.** Mark parts of any document, write a thought on each, and paste them all into Claude at once. See [Note for Claude](#note-for-claude) below.
 - **Ask.** Press Option + Shift + A to ask about what's on screen. Type, or dictate with any dictation app you already use, then press Return. Ask needs Claude connected, as described above.
@@ -92,6 +94,31 @@ All shortcuts use Option + Shift.
 - **Claude features send text only when you use them.** With "Richer voice with Claude" on, the text in your reading area goes to Claude to plan the reading. Ask sends your question, the sentence being read, and the text in the reading area (or in the window under your pointer when nothing is being read), and Claude may search the web to answer. Both run through your own `claude` command and your Claude plan. Lumen never uses an API key.
 - **Note for Claude sends nothing itself.** The parts you mark, their text, your notes, the file location or tab link, and any attached file go only to your clipboard, for you to paste. A marked-up PDF or notes PDF is a new file in your Downloads folder (macOS asks once if Lumen may save there), and your original PDF is never changed. To read a tab's link, Lumen asks the browser, and macOS asks you to allow that once per browser.
 - **What stays on disk.** Your settings (voice, mood, speed, and what you asked it to read in each app) are kept in macOS preferences. A diagnostic log at `~/Library/Logs/Narrator/narrator.log` records events such as which app was read and how long things took, never the text itself. History, at `~/Library/Application Support/Narrator/History`, keeps your Note for Claude sets (the marked parts, their text, your notes and requests, and where they came from) and a list of what was read aloud by date, app and window title, never the text. Anything older than 30 days is deleted automatically, and Delete in the tray removes a set straight away.
+
+## Known limits and what's being worked on
+
+Lumen is young and small, so here is what to expect. Each item links to its issue, where you can follow it or add what you know.
+
+- **Apple silicon and macOS 14 or later only.** The voice runs on MLX, which needs Apple silicon. Intel Macs are not supported.
+- **macOS shows an "unidentified developer" prompt the first time.** The app is self-signed. [Signed and notarized builds](https://github.com/jain-eshan/lumen/issues/18) need a paid Apple Developer membership.
+- **Follow is tested with the Claude desktop app only.** [Other chat apps](https://github.com/jain-eshan/lumen/issues/17) are untried. Its checks read a drawn copy of the Claude chat, and [testing against the real app](https://github.com/jain-eshan/lumen/issues/13) is still to do.
+- **Follow sometimes starts late.** One report of a reply read only after a keypress is still [being investigated](https://github.com/jain-eshan/lumen/issues/12).
+- **Follow tells your messages from Claude's by position.** [It can misjudge](https://github.com/jain-eshan/lumen/issues/16) an unusual layout, and its [safety net](https://github.com/jain-eshan/lumen/issues/15) may repeat a sentence on rare occasions.
+- **The build steps** have [not been tried on a clean Mac](https://github.com/jain-eshan/lumen/issues/19).
+- **The demo video** still says Narrator ([to re-render](https://github.com/jain-eshan/lumen/issues/20)).
+
+All open items are in [Issues](https://github.com/jain-eshan/lumen/issues), and what changed in each version is in the [changelog](CHANGELOG.md).
+
+## Troubleshooting
+
+- **Nothing happens when I press Option + Shift + 4.** Check that Lumen is in System Settings > Privacy & Security under both Screen Recording and Accessibility, then quit and reopen it.
+- **Follow did not read a reply.** Open `~/Library/Logs/Narrator/narrator.log`. Lines such as `scrolled`, `reached the end of the page`, `paused` and `guard:` show what Lumen decided. The log records events only, never the text on screen. If it did not explain things, [open an issue](https://github.com/jain-eshan/lumen/issues/new/choose) with the last 100 lines.
+- **Lumen asks for permissions again after an update.** Switch it on in System Settings. If a Narrator entry is listed there, that entry is Lumen.
+- **I selected a wide area and it read the side panel too.** Lumen reads everything inside the area. Select only the column you want, or say what you want read, such as "Claude's replies".
+
+## Contributing
+
+Bug reports with a log excerpt are the most useful thing you can send. Code changes are welcome too: [CONTRIBUTING.md](CONTRIBUTING.md) covers the checks to run and how to add a failure to the eval. Security problems go through [SECURITY.md](SECURITY.md), not a public issue.
 
 ## Uninstall
 
@@ -179,6 +206,7 @@ The demo is a [HyperFrames](https://hyperframes.heygen.com) project in `videos/n
   - `Simulation.swift`: the drawn chat that `evals/run.sh` reads
   - `main.swift`: starts the app
 - `evals/run.sh`: the Follow mode eval, one line per failure that was reported
+- `CHANGELOG.md`, `CONTRIBUTING.md`, `SECURITY.md`, `.github/`: release history, how to help, how to report a vulnerability, and the issue and pull request forms
 - `app/build.sh`, `app/package.sh`: build and disk image
 - `app/lumen/`: Lumen's poses, bundled into the app
 - `brand/`: the brand guide, logo, wordmark and colours
@@ -189,6 +217,10 @@ The demo is a [HyperFrames](https://hyperframes.heygen.com) project in `videos/n
 - `scripts/`: the other files are voice experiments from early development
 - `requirements.txt`: the pinned Python packages
 - `LICENSE`: GPL-3.0
+
+## Made by
+
+Lumen is designed, built and maintained by [Eshan Jain](https://www.eshanjain.com). The product page is at [eshanjain.com/lumen](https://www.eshanjain.com/lumen).
 
 ## Credits
 
