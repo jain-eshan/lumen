@@ -94,7 +94,7 @@ final class SimulatedScreen: @unchecked Sendable {
     }
 
     func image(for rect: CGRect) -> CGImage {
-        let (blocks, offset) = lock.withLock { (blocks, self.offset) }
+        let (blocks, offset): ([Block], CGFloat) = lock.withLock { (blocks, self.offset) }
         let pixels = CGSize(width: Self.size.width * Self.scale, height: Self.size.height * Self.scale)
         let context = CGContext(data: nil, width: Int(pixels.width), height: Int(pixels.height), bitsPerComponent: 8, bytesPerRow: 0,
                                 space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)!
