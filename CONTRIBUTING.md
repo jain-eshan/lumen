@@ -20,7 +20,7 @@ The app is a handful of Swift files in `app/`, described in the README under "La
 Before you open a pull request:
 
 1. Run the self-tests: `Lumen.app/Contents/MacOS/Lumen --selftest`. Every line should say PASS.
-2. If you touched how Lumen reads a chat, run the Follow eval: `evals/run.sh Lumen.app`. It shows nothing on screen and does not touch your cursor.
+2. If you touched how Lumen reads a chat, run the Follow eval: `evals/run.sh Lumen.app`. It shows nothing on screen and does not touch your cursor. It uses the on-device director unless "Richer voice with Claude" is on in your settings, which the scenarios do not cover yet ([#14](https://github.com/jain-eshan/lumen/issues/14)).
 3. Keep the change small and in the style of the code around it. No new dependency for something a few lines can do.
 
 ### Adding a failure to the eval

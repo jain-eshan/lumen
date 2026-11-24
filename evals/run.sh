@@ -2,7 +2,8 @@
 # Runs Lumen's Follow mode against a drawn stand-in for the Claude chat and checks what it would speak.
 #   usage: evals/run.sh [path/to/Lumen.app] [scenario ...]     (default: /Applications/Lumen.app, every scenario)
 # Nothing shows on screen and the cursor is not touched, so the computer stays usable. There is no sound and no
-# Screen Recording is needed. It does use the Claude Code CLI to plan the reading, as the app does when Claude is connected.
+# Screen Recording is needed. Reading is planned by Lumen's on-device director, unless "Richer voice with Claude" is switched
+# on in the settings of whoever runs it, in which case Claude plans it and results can vary between runs.
 # The page is drawn by app/Simulation.swift. Each scenario below is a failure that was reported from real use, so add
 # a line there and a case in Simulation.swift when a new one turns up, and run this before every release.
 #
