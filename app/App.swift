@@ -65,6 +65,7 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
     private var isPaused = false
     private var jump = 0
     private var scrolledByUser = false
+    private var scrollColumn: CGFloat?  // Where across the reading area the last scroll that moved the page was, as a fraction.
     private var rescan = false
     private var seen: [String] = []
     private var speed: Float = 1
@@ -116,6 +117,11 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
             let input = inputs.first { $0.hasPrefix("--direct-text=") }!.dropFirst("--direct-text=".count)
             let output = inputs.first { $0.hasPrefix("--direct-output=") }!.dropFirst("--direct-output=".count)
             Task { await writeDirectedSample(from: String(input), to: String(output)) }
+            return
+        }
+        // An eval: read a drawn page with none of the app's windows, shortcuts or voice engine.
+        if let argument = CommandLine.arguments.first(where: { $0.hasPrefix("--simulate-screen=") }) {
+            runSimulation(String(argument.dropFirst("--simulate-screen=".count)))
             return
         }
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
@@ -684,6 +690,7 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
 
     private func setPaused(_ paused: Bool, message: String? = nil) {
         guard paused != isPaused else { return }
+        note(paused ? "paused\(scrolledByUser ? " because the page was scrolled by hand" : "")" : "resumed")
         isPaused = paused
         playButton?.image = symbol(paused ? "play.fill" : "pause.fill", label: paused ? "Play" : "Pause")
         playButton?.setAccessibilityLabel(paused ? "Play" : "Pause")
@@ -1458,23 +1465,46 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
         startReading(rect, purpose: purpose, startAtEnd: startAtEnd)
     }
 
+    /// `--simulate-screen=<scenario>,<chat width>,<chat or all>` reads a drawn page, as the Claude app would look, and
+    /// `--purpose=` sets what to read. See evals/run.sh.
+    private func runSimulation(_ spec: String) {
+        let parts = spec.split(separator: ",").map(String.init)
+        guard parts.count == 3, let width = Double(parts[1]), let screen = SimulatedScreen(scenario: parts[0], chatWidth: width) else {
+            note("simulation: could not read \(spec)")
+            exit(2)
+        }
+        let purpose = CommandLine.arguments.first { $0.hasPrefix("--purpose=") }.map { String($0.dropFirst("--purpose=".count)) } ?? ""
+        let area = CGRect(x: 0, y: 0, width: parts[2] == "chat" ? width : SimulatedScreen.size.width, height: SimulatedScreen.size.height)
+        simulatedScreen = screen
+        Task {
+            _ = await refreshClaudeSetup()
+            startReading(area, purpose: purpose)
+            screen.start()
+        }
+    }
+
     private func startReading(_ rect: CGRect, purpose: String, startAtEnd: Bool = false) {
         isPaused = false
         jump = 0
         rescan = false
         scrolledByUser = false
+        scrollColumn = nil
         layoutChanged = false
         statusBeforePause = nil
         seen = []
         readingRect = rect
-        showHighlight(over: rect)
-        watchWindow(under: rect)
-        NoteHistory.logReading(app: watchedWindow?.owner ?? previousApp?.localizedName ?? "", title: watchedWindow?.title ?? "")
-        followNew = startAtEnd || looksLikeChat(owner: watchedWindow?.owner ?? "", title: watchedWindow?.title ?? "", purpose: purpose)
-        note("window app \(watchedWindow?.owner ?? "none"), follow \(followNew ? "on" : "off")")
+        if simulatedScreen == nil {
+            showHighlight(over: rect)
+            watchWindow(under: rect)
+            NoteHistory.logReading(app: watchedWindow?.owner ?? previousApp?.localizedName ?? "", title: watchedWindow?.title ?? "")
+        }
+        let owner = simulatedScreen?.owner ?? watchedWindow?.owner
+        followNew = startAtEnd || looksLikeChat(owner: owner ?? "", title: watchedWindow?.title ?? "", purpose: purpose)
+        note("window app \(owner ?? "none"), follow \(followNew ? "on" : "off")")
         spareHelper?.stop()
         spareHelper = followNew && usesClaude ? try? WarmClaude(system: Planner.system, schema: Planner.schema) : nil
         narration = Task { [weak self] in await self?.read(purpose: purpose, startAtEnd: startAtEnd) }
+        if simulatedScreen != nil { return }
         showBar(status: "Preparing", "Getting the voice ready.")
         pet.hideBubble()
         pet.show()
@@ -1491,7 +1521,7 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
 
     private func read(purpose: String, startAtEnd: Bool) async {
         do {
-            await speech.waitUntilReady()
+            if !isSilent { await speech.waitUntilReady() }
             try await Task.sleep(for: .milliseconds(250))
             if startAtEnd {
                 try await waitUntilVisible()
@@ -1568,13 +1598,35 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
             try await waitUntilVisible()
             highlightView?.segments = []
             setStatus("Scrolling", "Moving on to the next part of the page.")
-            await scrollDown(in: currentRect, gentle: NSWorkspace.shared.accessibilityDisplayShouldReduceMotion)
-            note("scrolled")
-            try await waitForPageToSettle()
+            guard try await scrollForMore() else {
+                note("screen unchanged after scrolling")
+                break
+            }
         }
         try await waitUntilVisible()
         let remaining = unreadLines(in: readableLines(try await recognizeLines(in: await capture(currentRect))), seen: seen)
         if remaining.contains(where: { normalized($0.text).count >= 16 }) { try await narrate(remaining, purpose: purpose) }
+    }
+
+    /// Scrolls down for more and says whether the page moved, judged by the text on screen before and after. A spot that
+    /// moves nothing may be a side panel or a divider, so the other spots get a try before the page counts as ended.
+    private func scrollForMore() async throws -> Bool {
+        let rect = currentRect
+        let screen = readableLines((try? await recognizeLines(in: try await capture(rect))) ?? [])
+        let before = screen.map { normalized($0.text) }.joined()
+        for spot in scrollSpots(for: screen, in: rect, preferred: scrollColumn) {
+            let over = simulatedScreen != nil ? "the test page" : topWindow(at: spot)?.owner ?? "nothing"
+            await scrollDown(in: rect, at: spot, gentle: NSWorkspace.shared.accessibilityDisplayShouldReduceMotion)
+            try await waitForPageToSettle()
+            let after = readableLines((try? await recognizeLines(in: try await capture(rect))) ?? []).map { normalized($0.text) }.joined()
+            let moved = after != before
+            note("scrolled at \(Int(spot.x)),\(Int(spot.y)) over \(over): \(moved ? "the page moved" : "nothing moved")")
+            if moved {
+                scrollColumn = (spot.x - rect.minX) / rect.width
+                return true
+            }
+        }
+        return false
     }
 
     /// After a scroll, waits until the page has stopped moving, so the next look at the screen is sharp. Some pages keep
@@ -1616,6 +1668,9 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
         var earlierRound = Set<String>()
         var lastChange = Date()
         var lastNews = Date()
+        var lastScrolled = Date.distantPast
+        var endOfPage = ""  // The text of a screen that did not move when scrolled, which means there is nothing below it.
+        var unnoticedSince: Date?  // When lines first sat on screen unread with nothing else going on.
         while followNew {
             try await Task.sleep(for: .milliseconds(350))
             try await waitUntilVisible()
@@ -1652,7 +1707,7 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
             }
             guard replyQueue.count < 2 else { continue }
             if let end = replyWaiting.lastIndex(where: { endsThought($0.text) }),
-               replyWaiting[...end].contains(where: { normalized($0.text).count >= 16 }) {
+               replyWaiting[...end].contains(where: { worthReading($0.text) }) {
                 queueReply(placed(Array(replyWaiting[...end]), on: lines), purpose: purpose)
                 replyWaiting.removeFirst(end + 1)
                 lastNews = Date()
@@ -1661,9 +1716,40 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
             // The final lines count as finished once the text stops changing, which takes at least a second.
             guard Date().timeIntervalSince(lastChange) >= 1 else { continue }
             let remaining = replyWaiting + unreadLines(in: lines, seen: seen + claimedLines + replyWaiting.map(\.text))
+            // Safety net for any way text can go unread: lines that sit on screen unread while nothing is being read or
+            // planned are read after a few seconds, and the log says so.
+            let unnoticed = remaining.isEmpty && replyQueue.isEmpty && !isPaused
+                ? unreadLines(in: lines.filter { !$0.touchesBottom }, seen: seen + claimedLines + replyWaiting.map(\.text), anchored: false).filter { worthReading($0.text) } : []
+            if unnoticed.isEmpty {
+                unnoticedSince = nil
+            } else if let since = unnoticedSince, Date().timeIntervalSince(since) >= 6 {
+                note("guard: \(unnoticed.count) lines on screen were never read, reading them")
+                unnoticedSince = nil
+                queueReply(placed(unnoticed, on: lines), purpose: purpose)
+                lastNews = Date()
+                continue
+            } else if unnoticedSince == nil {
+                unnoticedSince = Date()
+            }
+            // A long reply carries on below the screen, where the text cannot be seen, so once everything visible
+            // has been read, scroll down to look for more.
+            if shouldScrollForMore(unreadVisible: remaining.contains { !$0.touchesBottom } || !unnoticed.isEmpty, queued: !replyQueue.isEmpty, paused: isPaused,
+                                   stillFor: Date().timeIntervalSince(lastChange), sinceScroll: Date().timeIntervalSince(lastScrolled), atEnd: previousText == endOfPage) {
+                lastScrolled = Date()
+                setStatus("Scrolling", "Looking for more of the reply below.")
+                if try await scrollForMore() {
+                    note("scrolled down to look for more")
+                } else {
+                    endOfPage = previousText
+                    note("reached the end of the page")
+                    showFollowing()
+                }
+                previousScreen = nil
+                continue
+            }
             guard let last = remaining.last, Date().timeIntervalSince(lastChange) >= (endsThought(last.text) ? 1 : 3.5) else { continue }
             replyWaiting = []
-            if remaining.contains(where: { normalized($0.text).count >= 16 }) {
+            if remaining.contains(where: { worthReading($0.text) }) {
                 queueReply(placed(remaining, on: lines), purpose: purpose)
                 lastNews = Date()
             } else {
@@ -1737,7 +1823,12 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
         var chosenVoice = narratorVoice(for: "other")
         do {
             let began = Date()
-            let rightSide = rightSideUnits(items, lines: lines, screen: followNew && !liveLines.isEmpty ? liveLines : lines)
+            let rightSide = rightSideUnits(items, lines: lines, screen: followNew && !liveLines.isEmpty ? liveLines : lines, width: currentRect.width)
+            // Only the user's own message arrived, so there is nothing to read and no reason to wait for a plan.
+            if followNew, !items.isEmpty, rightSide.count == items.count {
+                note("new text was the user's own message")
+                return ReadingSetup(items: [], voice: chosenVoice)
+            }
             let plan: ReadingPlan
             if usesClaude {
                 let helper = followNew ? spareHelper : nil
@@ -1807,7 +1898,11 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
         seen += lines.map(\.text)
     }
 
+    /// Evals read without a voice or sound: the log still says what would have been spoken.
+    private var isSilent: Bool { simulatedScreen != nil || CommandLine.arguments.contains("--silent") }
+
     private func performedClip(_ item: Utterance, narrator: String) async throws -> URL {
+        if isSilent { return URL(fileURLWithPath: "/nonexistent/silent.wav") }
         let direction = item.delivery.settings
         let voiceName = dialogueVoice(for: item.delivery.speaker, narrator: narrator)
         let raw = try await speech.synthesize(item.spokenText, voice: voiceName, speed: direction.speed)
@@ -1858,6 +1953,7 @@ final class NarratorApp: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
     }
 
     private func play(_ url: URL, item: Utterance, lines: [ScreenLine]) async throws {
+        if isSilent { return }
         let sound = try makePlayer(url, volume: pow(10, item.delivery.settings.gain / 20) * 0.88, reportingTo: finished)
         player = sound
         highlight(item, lines: lines, progress: 0)

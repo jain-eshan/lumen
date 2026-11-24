@@ -62,7 +62,64 @@ func runSelfTest() -> Int32 {
     check("local reading turns on a contrast", LocalDirector.plan(units: contrast, purpose: "", mood: "Auto", rightSide: [], following: false).items.last?.mood == "turning")
     check("local reading skips the user's own messages", LocalDirector.plan(units: bubbleUnits, purpose: "Claude's replies", mood: "Auto", rightSide: [0], following: false).items.map(\.unit) == [1])
     check("finds a mood in a dictated purpose", LocalDirector.mood(in: "Claude's replies, calm please") == "Calm")
-    check("marks the user's message on the right", rightSideUnits(bubbleUnits, lines: [bubble, replyLine], screen: [replyLine, bubble, replyLine]) == [0])
+    check("marks the user's message on the right", rightSideUnits(bubbleUnits, lines: [bubble, replyLine], screen: [replyLine, bubble, replyLine], width: 893) == [0])
+    // The Claude app as it looked in a real test: a long message of four lines, then a one-line reply.
+    func chat(_ text: String, x: CGFloat, y: CGFloat) -> ScreenLine { ScreenLine(text: text, box: CGRect(x: x, y: y, width: 0.64, height: 0.02)) }
+    let longMessage = [
+        chat("Got it. Second, we're already clear on what the feature will be. Let's directly jump", x: 0.229, y: 0.927),
+        chat("into the launch plan, and we'll cover how the pilot will be run, what we will measure,", x: 0.226, y: 0.899),
+        chat("what the guardrails will be, and any sort of risks that I can think of. Let me know if you", x: 0.229, y: 0.874),
+        chat("have any. Think more about what I should cover, otherwise I'll move forward with it.", x: 0.227, y: 0.845),
+    ]
+    let claudeScreen = longMessage + [chat("Checking whether the plan names a goal ›", x: 0.093, y: 0.759), chat("Go ahead.", x: 0.093, y: 0.712), chat("Reply", x: 0.087, y: 0.066)]
+    let screenUnits = utterances(claudeScreen, in: 0..<claudeScreen.count)
+    check("marks a long message of several lines as the user's", rightSideUnits(screenUnits, lines: claudeScreen, screen: claudeScreen, width: 893).isSuperset(of: [0, 1, 2]))
+    // Claude's bullets are indented, and a wrapped bullet line must not be mistaken for the user's message.
+    let bullets = [
+        ScreenLine(text: "The check against reported numbers", box: CGRect(x: 0.034, y: 0.161, width: 0.62, height: 0.02)),
+        ScreenLine(text: "\u{2022} Top-down, from the users, Swiggy had", box: CGRect(x: 0.055, y: 0.119, width: 0.62, height: 0.02)),
+        ScreenLine(text: "19.8 million monthly users in Q2.", box: CGRect(x: 0.110, y: 0.090, width: 0.40, height: 0.02)),
+        ScreenLine(text: "At about 3 orders a month, that is 20M x 3 / 30 =", box: CGRect(x: 0.116, y: 0.063, width: 0.56, height: 0.02)),
+    ]
+    check("does not mistake indented bullet lines for the user's message", rightSideUnits(utterances(bullets, in: 0..<4), lines: bullets, screen: bullets + (0..<4).map { ScreenLine(text: "Reply text above the list \($0).", box: CGRect(x: 0.034, y: 0.4 + 0.03 * CGFloat($0), width: 0.6, height: 0.02)) }, width: 893).isEmpty)
+    // The same message, 93 points in from the reply column, in a selection of the chat alone and in one across a side panel.
+    func message(in width: CGFloat) -> Bool {
+        let offset = 93 / width
+        let long = ["Zanzibar: before you start, please read the whole plan again and tell me whether the goal,", "the owners and the dates are all written down clearly enough for a stranger."]
+            .enumerated().map { ScreenLine(text: $1, box: CGRect(x: 26 / width + offset, y: 0.9 - 0.04 * CGFloat($0), width: 0.2, height: 0.02)) }
+        let reply = ScreenLine(text: "The plan names a goal and an owner for each step.", box: CGRect(x: 26 / width, y: 0.7, width: 0.3, height: 0.02))
+        let all = long + [reply, reply, reply]
+        let units = utterances(long, in: 0..<2)
+        return !units.isEmpty && rightSideUnits(units, lines: long, screen: all, width: width) == Set(units.indices)
+    }
+    check("recognises the user's message in a narrow and in a wide selection", message(in: 560) && message(in: 1000))
+    check("never marks the reply as the user's", rightSideUnits(screenUnits, lines: claudeScreen, screen: claudeScreen, width: 893).isDisjoint(with: screenUnits.indices.filter { screenUnits[$0].text.contains("Go ahead") }))
+    check("reads a short reply that ends a sentence", worthReading("Go ahead.") && worthReading("Yes, that works.") && !worthReading("Auto") && !worthReading("Opus 5.5 High") && !worthReading("Reply"))
+    check("scrolls for more of a long reply once everything visible is read", shouldScrollForMore(unreadVisible: false, queued: false, paused: false, stillFor: 2.5, sinceScroll: 9, atEnd: false))
+    check("does not scroll while reading, paused, or text is still arriving", !shouldScrollForMore(unreadVisible: false, queued: true, paused: false, stillFor: 5, sinceScroll: 9, atEnd: false)
+        && !shouldScrollForMore(unreadVisible: false, queued: false, paused: true, stillFor: 5, sinceScroll: 9, atEnd: false)
+        && !shouldScrollForMore(unreadVisible: true, queued: false, paused: false, stillFor: 5, sinceScroll: 9, atEnd: false)
+        && !shouldScrollForMore(unreadVisible: false, queued: false, paused: false, stillFor: 0.5, sinceScroll: 9, atEnd: false))
+    check("stops scrolling at the end of the page", !shouldScrollForMore(unreadVisible: false, queued: false, paused: false, stillFor: 5, sinceScroll: 9, atEnd: true))
+    // A selection across the chat and a side panel: the chat text sits in the left 40%, so the middle is on the panel.
+    let wideArea = CGRect(x: 256, y: 80, width: 1200, height: 720)
+    let chatColumn = (0..<8).map { ScreenLine(text: "Reply text \($0) in the chat column.", box: CGRect(x: 0.03, y: 0.1 + 0.1 * CGFloat($0), width: 0.38, height: 0.02)) }
+    let wideSpots = scrollSpots(for: chatColumn, in: wideArea)
+    check("scrolls over the text first, not the middle of a wide selection", wideSpots.first.map { $0.x < wideArea.minX + 0.4 * wideArea.width } == true && wideSpots.contains { abs($0.x - wideArea.midX) < 1 })
+    check("tries the middle and the far side of a wide selection before giving up", wideSpots.count == 3 && wideSpots.last.map { $0.x > wideArea.minX + 0.7 * wideArea.width } == true && Set(wideSpots.map(\.y)) == [wideArea.midY])
+    check("starts with the column that moved the page last time", scrollSpots(for: chatColumn, in: wideArea, preferred: 0.75).first.map { abs($0.x - (wideArea.minX + 0.75 * wideArea.width)) < 1 } == true)
+    let fullWidth = chatColumn.map { ScreenLine(text: $0.text, box: CGRect(x: 0.03, y: $0.box.minY, width: 0.9, height: 0.02)) }
+    check("one spot is enough in a narrow selection", scrollSpots(for: fullWidth, in: CGRect(x: 256, y: 80, width: 430, height: 720)).count == 1)
+    // After a scroll the chat block is listed first and the side panel after it. The panel line was read earlier, and it
+    // must not stand in as the bookmark that hides the unread chat lines above it.
+    let readInChat = ["Top down, from the users, the platform had nineteen million", "monthly users at about three orders a month."]
+    let afterScroll = ["Top down, from the users, the platform had nineteen million", "monthly users at about three orders a month.", "Bottom up, from the order count, the platform reported two hundred million.", "ENDMARKER This is the last sentence of the reply."]
+        .enumerated().map { ScreenLine(text: $1, box: CGRect(x: 0.03, y: 0.9 - 0.1 * CGFloat($0), width: 0.35, height: 0.02)) }
+        + [ScreenLine(text: "Document panel. This side is not part of the reply.", box: CGRect(x: 0.45, y: 0.95, width: 0.4, height: 0.02))]
+    let freshAfterScroll = unreadLines(in: afterScroll, seen: readInChat + ["Document panel. This side is not part of the reply."]).map(\.text)
+    check("reads the new chat lines even when a read side panel is listed after them", freshAfterScroll.count == 2 && freshAfterScroll.last?.hasPrefix("ENDMARKER") == true)
+    check("still skips lines already read in a single column", unreadLines(in: Array(afterScroll.prefix(2)), seen: readInChat).isEmpty)
+    check("ignores the collapsed thinking line", readableLines([chat("Checking whether the plan names a goal ›", x: 0.093, y: 0.759), chat("Go ahead.", x: 0.093, y: 0.712)]).map(\.text) == ["Go ahead."])
 
     let source = [line("Region Revenue"), line("North 120"), line("South 80")]
     let table = [Utterance(text: "Region Revenue North 120 South 80", spans: [LineSpan(line: 0, from: 0, to: 14)], pauseAfter: 0.14)]
@@ -83,7 +140,7 @@ func runSelfTest() -> Int32 {
     check("marks where each sentence sits within a line", twoSentences.count == 2 && twoSentences[1].spans[0].from > 30)
     let spaced = [placed("First paragraph ends with this line.", top: 0.9), placed("Second paragraph begins much lower.", top: 0.7)]
     check("separates paragraphs using the gap on screen", paragraphRanges(spaced, in: 0..<2).count == 2)
-    check("pauses longer at the end of a paragraph", utterances(spaced, in: 0..<2).first?.pauseAfter == 0.42)
+    check("pauses longer at the end of a paragraph", utterances(spaced, in: 0..<2).first?.pauseAfter == 0.65)
     let noisy = [ScreenLine(text: "Clipped title", touchesTop: true), line("• •"), ScreenLine(text: "Blurry", confidence: 0.1), line("Real text")]
     check("ignores clipped lines and recognition noise", readableLines(noisy).map(\.text) == ["Real text"])
     check("drops a chat label before speaking", utterances([line("Claude: Working capital is current assets minus liabilities.")], in: 0..<1).first?.text == "Working capital is current assets minus liabilities.")
