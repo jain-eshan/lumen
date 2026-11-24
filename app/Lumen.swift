@@ -133,6 +133,16 @@ final class PetView: NSView {
     }
 }
 
+/// Where Lumen can stand, from each screen's full area and its usable area (the usable area already leaves out the Dock
+/// and the menu bar). A Dock along the bottom of a screen is her floor. With no Dock there (hidden, at a side, or none at
+/// all) she stands on the bottom edge of the screen she is on, clear of a side Dock.
+func lumenGround(screens: [(frame: CGRect, visible: CGRect)], x: CGFloat) -> (floor: CGFloat, range: ClosedRange<CGFloat>, bottomDock: Bool) {
+    let docked = screens.first { $0.visible.minY > $0.frame.minY + 1 }
+    let screen = docked ?? screens.first { x >= $0.frame.minX && x < $0.frame.maxX } ?? screens[0]
+    let floor = docked == nil ? screen.frame.minY : screen.visible.minY - 3
+    return (floor, (screen.visible.minX + 70)...(screen.visible.maxX - 70), docked != nil)
+}
+
 /// Lumen lives on top of the Dock: wanders along it, flutters over long distances, sits on the icon of the app
 /// being read, reads aloud with its mouth and lantern following the voice, and can be picked up and dropped.
 @MainActor
@@ -163,7 +173,8 @@ final class Pet: NSObject {
     private var tick = 0
     private var lastActivity = Date()
     private var nextWander = Date().addingTimeInterval(12)
-    private var dockInfo: (at: Date, floor: CGFloat, range: ClosedRange<CGFloat>, icons: [String: CGFloat])?
+    private var dockInfo: (at: Date, bar: ClosedRange<CGFloat>?, icons: [String: CGFloat])?
+    private var lastGround = ""
     private var currentMood = PetMood.idle
     private var showingHint = false
     private var hintTurn = 0
@@ -357,15 +368,33 @@ final class Pet: NSObject {
     // MARK: Where the Dock is
 
     /// The Dock's top edge and width, and where each app's icon sits. Without a Dock at the bottom, the screen's bottom edge.
+    /// The floor is worked out on every call, so a Dock that is resized, hidden or moved is noticed at once. Only the slower
+    /// look at the Dock's icons is kept for a few seconds.
     private func dock() -> (floor: CGFloat, range: ClosedRange<CGFloat>, icons: [String: CGFloat]) {
-        if let info = dockInfo, Date().timeIntervalSince(info.at) < 3 { return (info.floor, info.range, info.icons) }
-        let primary = NSScreen.screens.first ?? NSScreen.main!
-        let docked = NSScreen.screens.first { $0.visibleFrame.minY > $0.frame.minY + 1 }
-        let screen = docked ?? primary
-        let floor = docked == nil ? screen.frame.minY : screen.visibleFrame.minY - 3
-        var range = (screen.frame.minX + 70)...(screen.frame.maxX - 70)
+        let ground = lumenGround(screens: NSScreen.screens.map { ($0.frame, $0.visibleFrame) }, x: feet.x)
+        var range = ground.range
         var icons: [String: CGFloat] = [:]
-        if docked != nil, AXIsProcessTrusted(), let process = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.dock").first {
+        if ground.bottomDock {
+            if dockInfo == nil || Date().timeIntervalSince(dockInfo!.at) >= 3 { dockInfo = readDock() }
+            // The Dock's own width, if it lies on this screen. Otherwise the screen's width.
+            if let bar = dockInfo?.bar, bar.lowerBound < range.upperBound, bar.upperBound > range.lowerBound {
+                range = max(bar.lowerBound, range.lowerBound)...min(bar.upperBound, range.upperBound)
+            }
+            icons = dockInfo?.icons ?? [:]
+        } else {
+            dockInfo = nil
+        }
+        let summary = "dock: \(ground.bottomDock ? "" : "none at the bottom, ")floor \(Int(ground.floor)), walks \(Int(range.lowerBound))...\(Int(range.upperBound)), \(icons.count) icons"
+        if summary != lastGround { note(summary) }
+        lastGround = summary
+        return (ground.floor, range, icons)
+    }
+
+    /// The Dock's width and where each app's icon sits, read through Accessibility.
+    private func readDock() -> (at: Date, bar: ClosedRange<CGFloat>?, icons: [String: CGFloat]) {
+        var bar: ClosedRange<CGFloat>?
+        var icons: [String: CGFloat] = [:]
+        if AXIsProcessTrusted(), let process = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.dock").first {
             func value(_ element: AXUIElement, _ name: String) -> CFTypeRef? {
                 var result: CFTypeRef?
                 return AXUIElementCopyAttributeValue(element, name as CFString, &result) == .success ? result : nil
@@ -378,16 +407,14 @@ final class Pet: NSObject {
             }
             let app = AXUIElementCreateApplication(process.processIdentifier)
             for list in (value(app, kAXChildrenAttribute) as? [AXUIElement]) ?? [] where (value(list, kAXRoleAttribute) as? String) == "AXList" {
-                let bar = frame(list)
-                if bar.width > 160 { range = (bar.minX + 40)...(bar.maxX - 40) }
+                let strip = frame(list)
+                if strip.width > 160 { bar = (strip.minX + 40)...(strip.maxX - 40) }
                 for item in (value(list, kAXChildrenAttribute) as? [AXUIElement]) ?? [] {
                     if let title = value(item, kAXTitleAttribute) as? String { icons[title] = frame(item).midX }
                 }
             }
         }
-        if dockInfo == nil { note("dock: floor \(Int(floor)), walks \(Int(range.lowerBound))...\(Int(range.upperBound)), \(icons.count) icons") }
-        dockInfo = (Date(), floor, range, icons)
-        return (floor, range, icons)
+        return (Date(), bar, icons)
     }
 
     // MARK: Moving
@@ -440,6 +467,10 @@ final class Pet: NSObject {
         if motion == .standing, !speaking, !still, pointer.y < dock.floor, abs(pointer.x - feet.x) < 46, goalX == nil {
             goalX = feet.x + (pointer.x < feet.x ? 110 : -110)
         }
+        // The Dock moved, shrank or went away under Lumen: she heads back onto it instead of hovering past its end.
+        if motion == .standing, goalX == nil, feet.x < dock.range.lowerBound - 2 || feet.x > dock.range.upperBound + 2 {
+            goalX = feet.x
+        }
         if let goal = goalX { goalX = min(max(goal, dock.range.lowerBound), dock.range.upperBound) }
 
         switch motion {
@@ -468,7 +499,16 @@ final class Pet: NSObject {
                 view.stretch = -0.1
             }
         case .standing, .walking:
-            feet.y = dock.floor
+            // The floor changed (the Dock grew, shrank, hid or moved): flutter down, or ease up, instead of jumping.
+            let gap = dock.floor - feet.y
+            if still || abs(gap) < 1 {
+                feet.y = dock.floor
+            } else if gap < -8 {
+                motion = .gliding
+                break
+            } else {
+                feet.y += min(max(gap, -4.5), 4.5)
+            }
             if let goal = goalX, abs(goal - feet.x) > 2 {
                 if still {
                     feet.x = goal

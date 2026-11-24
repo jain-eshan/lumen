@@ -352,6 +352,22 @@ func runSelfTest() -> Int32 {
     check("the selector never hands on its own scroll again", handedOn == 1)
     SelectionView.handOn = realHandOn
 
+    // Where Lumen stands: a laptop with a menu bar, and a second display beside it.
+    let laptop = CGRect(x: 0, y: 0, width: 1470, height: 956), desk = CGRect(x: 1470, y: 0, width: 1180, height: 820)
+    func screens(laptopVisible: CGRect, deskVisible: CGRect) -> [(frame: CGRect, visible: CGRect)] {
+        [(laptop, laptopVisible), (desk, deskVisible)]
+    }
+    let noDock = lumenGround(screens: screens(laptopVisible: CGRect(x: 0, y: 0, width: 1470, height: 923), deskVisible: desk), x: 300)
+    check("with no Dock, Lumen stands on the bottom edge", noDock.floor == 0 && !noDock.bottomDock && noDock.range == 70...1400)
+    let onDesk = lumenGround(screens: screens(laptopVisible: laptop, deskVisible: CGRect(x: 1470, y: 61, width: 1180, height: 759)), x: 300)
+    check("a Dock on the other display is her floor, wherever she was", onDesk.floor == 58 && onDesk.bottomDock && onDesk.range == 1540...2580)
+    let sideDock = lumenGround(screens: screens(laptopVisible: CGRect(x: 80, y: 0, width: 1390, height: 923), deskVisible: desk), x: 300)
+    check("a Dock at the side leaves Lumen on the bottom edge, clear of it", sideDock.floor == 0 && !sideDock.bottomDock && sideDock.range == 150...1400)
+    let hiddenOnDesk = lumenGround(screens: screens(laptopVisible: laptop, deskVisible: desk), x: 2000)
+    check("with no Dock, she stays on the display she is on", hiddenOnDesk.floor == 0 && hiddenOnDesk.range == 1540...2580)
+    let taller = lumenGround(screens: screens(laptopVisible: laptop, deskVisible: CGRect(x: 1470, y: 91, width: 1180, height: 729)), x: 2000)
+    check("a taller Dock raises her floor straight away", taller.floor == 88)
+
     print(failures == 0 ? "All self-tests passed" : "\(failures) self-tests failed")
     return failures == 0 ? 0 : 1
 }
